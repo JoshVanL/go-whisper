@@ -1,0 +1,4 @@
+client
+server
+!cmd/server
+!cmd/client
