@@ -9,7 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/joshvanl/go-whisper/pkg/file"
+	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
 const (
@@ -27,7 +27,7 @@ type Client struct {
 
 func New(addr string, log *logrus.Entry) (*Client, error) {
 
-	k, err := file.RetrieveKey()
+	k, err := key.RetrieveLocalKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read client key: %v", err)
 	}
@@ -47,6 +47,10 @@ func (c *Client) Connect() error {
 	}
 
 	c.conn = conn
+
+	if _, err := c.conn.Write([]byte("hello")); err != nil {
+		return fmt.Errorf("failed to write to connection: %v", err)
+	}
 
 	return nil
 }

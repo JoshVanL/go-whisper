@@ -1,4 +1,4 @@
-package file
+package key
 
 import (
 	"fmt"
@@ -12,11 +12,12 @@ import (
 
 const (
 	wipserDir      = "go-wipser"
+	uidDir         = "uid_public_keys"
 	privateKeyFile = "private_key.pem"
 	publicKeyFile  = "public_key.pem"
 )
 
-func RetrieveKey() (*rsa.PrivateKey, error) {
+func RetrieveLocalKey() (*rsa.PrivateKey, error) {
 	if err := ensureKeyDirectory(); err != nil {
 		return nil, fmt.Errorf("failed to ensure key directory: %v", err)
 	}
@@ -25,7 +26,12 @@ func RetrieveKey() (*rsa.PrivateKey, error) {
 		return nil, fmt.Errorf("failed to ensure key files: %v", err)
 	}
 
-	k, err := readKey()
+	dir, err := keyDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get key directory: %v", err)
+	}
+
+	k, err := readPrivateKey(fmt.Sprintf("%s/%s", dir, privateKeyFile))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key: %v", err)
 	}
@@ -33,20 +39,15 @@ func RetrieveKey() (*rsa.PrivateKey, error) {
 	return k, nil
 }
 
-func readKey() (*rsa.PrivateKey, error) {
-	dir, err := keyDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get key directory: %v", err)
-	}
-
-	f, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", dir, privateKeyFile))
+func readPrivateKey(path string) (*rsa.PrivateKey, error) {
+	f, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open private key file for reading: %v", err)
 	}
 
 	block, rest := pem.Decode(f)
 	if block == nil {
-		return nil, fmt.Errorf("pem block was nil at private key file: %s", privateKeyFile)
+		return nil, fmt.Errorf("pem block was nil at private key file: %s", path)
 	}
 	if len(rest) != 0 {
 		return nil, fmt.Errorf("expected rest of pem block to be nil, got=%v", rest)
@@ -59,6 +60,29 @@ func readKey() (*rsa.PrivateKey, error) {
 
 	return k, nil
 }
+
+func readPublicKey(path string) (*rsa.PublicKey, error) {
+	f, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open public key file for reading: %v", err)
+	}
+
+	block, rest := pem.Decode(f)
+	if block == nil {
+		return nil, fmt.Errorf("pem block was nil at public key file: %s", path)
+	}
+	if len(rest) != 0 {
+		return nil, fmt.Errorf("expected rest of pem block to be nil, got=%v", rest)
+	}
+
+	k, err := x509.ParsePKCS1PublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key file: %v", err)
+	}
+
+	return k, nil
+}
+
 
 func ensureKeyDirectory() error {
 	dir, err := keyDir()
@@ -78,6 +102,31 @@ func ensureKeyDirectory() error {
 	}
 
 	return nil
+}
+
+func uidPubkicKeyDirectory() (string, error) {
+	dir, err := uidPublicKeyDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get uids public key directory: %v", err)
+	}
+
+	if f, err := os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, 0700); err != nil {
+				return "", fmt.Errorf("failed to create uids public keys directory: %v", err)
+			}
+
+		} else {
+			return "", fmt.Errorf("failed to check uids public keys directory: %v", err)
+		}
+	} else {
+		if !f.IsDir() {
+			return "", fmt.Errorf("is not a directory: %s", dir)
+		}
+
+	}
+
+	return dir, nil
 }
 
 func ensureKeyFiles() error {
@@ -113,6 +162,21 @@ func keyDir() (string, error) {
 
 	return fmt.Sprintf("%s/%s", usr.HomeDir, wipserDir), nil
 }
+
+func uidPublicKeyDir() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", fmt.Errorf("unable to resolve current user: %v", err)
+	}
+
+	_, err = os.Stat(usr.HomeDir)
+	if err != nil {
+		return "", fmt.Errorf("error checking home directory : %v", err)
+	}
+
+	return fmt.Sprintf("%s/%s/%s", usr.HomeDir, wipserDir, uidPublicKeyDir), nil
+}
+
 
 func CreateKeyPair(dir string) error {
 	k, err := generateRSAKey()
