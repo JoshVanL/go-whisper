@@ -2,3 +2,5 @@ client
 server
 !cmd/server
 !cmd/client
+!pkg/server
+!pkg/client
