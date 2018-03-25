@@ -23,6 +23,7 @@ type Client struct {
 
 	key  *rsa.PrivateKey
 	conn net.Conn
+	uid  uint64
 }
 
 func New(addr string, log *logrus.Entry) (*Client, error) {
@@ -32,10 +33,16 @@ func New(addr string, log *logrus.Entry) (*Client, error) {
 		return nil, fmt.Errorf("failed to read client key: %v", err)
 	}
 
+	uid, err := key.RetrieveLocalUID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read client config: %v", err)
+	}
+
 	return &Client{
 		log: log,
 		addr: addr,
 		key: k,
+		uid: uid,
 	},
 		nil
 }

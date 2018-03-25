@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	wipserDir      = "go-wipser"
+	wipserDir      = ".go-wipser"
 	uidDir         = "uid_public_keys"
 	privateKeyFile = "private_key.pem"
 	publicKeyFile  = "public_key.pem"
@@ -123,7 +123,6 @@ func uidPubkicKeyDirectory() (string, error) {
 		if !f.IsDir() {
 			return "", fmt.Errorf("is not a directory: %s", dir)
 		}
-
 	}
 
 	return dir, nil
@@ -203,13 +202,10 @@ func writeKeyPemFile(file string, key *pem.Block) error {
 	if err != nil {
 		return fmt.Errorf("failed to open pem file: %v", err)
 	}
+	defer f.Close()
 
 	if err := pem.Encode(f, key); err != nil {
 		return fmt.Errorf("failed to write pem block to file: %v", err)
-	}
-
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("failed to close key file: %v", err)
 	}
 
 	return nil
