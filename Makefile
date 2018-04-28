@@ -2,18 +2,22 @@
 
 help:
 	# all    - build all binaries
-	# client - build client
-	# server - build server
+	# build  - build client and server
+	# test   - test target files
 	# clean  - clean binaries
 
-all: client server
+all: test build
 
-client:
-	go build -o client cmd/client/main.go
+build:
+	mkdir -p bin
+	go build -o bin/client cmd/client/main.go
+	go build -o bin/server cmd/server/main.go
 
-server:
-	go build -o server cmd/server/main.go
+test: go_test
 
 clean:
 	rm -rf client
 	rm -rf server
+
+go_test:
+	go test $$(go list ./pkg/... ./cmd/....)

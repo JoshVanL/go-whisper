@@ -1,13 +1,14 @@
 package key
 
 import (
-	"fmt"
-	"os/user"
-	"os"
-	"encoding/pem"
-	"crypto/x509"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
 	"io/ioutil"
+	"os"
+	"os/user"
+	"path/filepath"
 )
 
 const (
@@ -83,7 +84,6 @@ func readPublicKey(path string) (*rsa.PublicKey, error) {
 	return k, nil
 }
 
-
 func ensureKeyDirectory() error {
 	dir, err := keyDir()
 	if err != nil {
@@ -147,7 +147,6 @@ func ensureKeyFiles() error {
 	return nil
 }
 
-
 func keyDir() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
@@ -173,9 +172,8 @@ func uidPublicKeyDir() (string, error) {
 		return "", fmt.Errorf("error checking home directory : %v", err)
 	}
 
-	return fmt.Sprintf("%s/%s/%s", usr.HomeDir, wipserDir, uidPublicKeyDir), nil
+	return filepath.Join(usr.HomeDir, wipserDir), nil
 }
-
 
 func CreateKeyPair(dir string) error {
 	k, err := generateRSAKey()
