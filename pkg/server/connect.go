@@ -2,7 +2,6 @@ package server
 
 import (
 	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
 	"math"
 	"math/big"
@@ -36,8 +35,8 @@ func (s *Server) newUID() (uint64, error) {
 			}
 		}
 
-		if _, ok := s.uids[n.Uint64()]; !ok {
-			s.uids[n.Uint64()] = new(rsa.PublicKey)
+		if _, ok := s.clientUids[n.String()]; !ok {
+			s.clientUids[n.String()] = true
 			return n.Uint64(), nil
 		}
 

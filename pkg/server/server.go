@@ -7,6 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/joshvanl/go-whisper/pkg/config"
 	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
@@ -16,10 +17,13 @@ type Server struct {
 	addr string
 	dir  string
 
+	clientUids map[string]bool
+	uids       *key.UIDs
+
 	key  *rsa.PrivateKey
 	conn net.Conn
 
-	uids map[uint64]*rsa.PublicKey
+	config *config.Config
 }
 
 func New(addr string, dir string, log *logrus.Entry) (*Server, error) {
@@ -30,21 +34,34 @@ func New(addr string, dir string, log *logrus.Entry) (*Server, error) {
 		return nil, fmt.Errorf("failed to read server key: %v", err)
 	}
 
-	log.Infof("Retrieving local uid public keys...")
-	pubKeys, err := key.RetrieveUIDPublicKeys(dir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read local client keys: %v", err)
+	server := &Server{
+		log:  log,
+		addr: addr,
+		dir:  dir,
+		key:  k,
 	}
 
-	return &Server{
-			log:  log,
-			addr: addr,
-			dir:  dir,
-			key:  k,
-			uids: pubKeys,
-		},
-		nil
+	log.Infof("Retrieving local server config...")
+	config, err := config.ReadConfig(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config: %v", err)
+	}
+	server.config = config
 
+	if addr != "" {
+		server.addr = addr
+	} else {
+		server.addr = server.config.Address
+	}
+
+	log.Infof("Retrieving local uids...")
+	uids, err := key.NewUIDs(server.dir, 0)
+	if err != nil {
+		return nil, err
+	}
+	server.uids = uids
+
+	return server, nil
 }
 
 func (s *Server) Serve() error {

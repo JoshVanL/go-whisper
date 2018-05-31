@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/joshvanl/go-whisper/pkg/config"
 	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
@@ -27,7 +28,7 @@ type Client struct {
 	key  *rsa.PrivateKey
 	conn net.Conn
 
-	config *Config
+	config *config.Config
 }
 
 func New(addr, dir string, log *logrus.Entry) (*Client, error) {
@@ -45,9 +46,11 @@ func New(addr, dir string, log *logrus.Entry) (*Client, error) {
 	}
 
 	log.Infof("Retrieving local client config...")
-	if err := client.ReadConfig(); err != nil {
+	config, err := config.ReadConfig(dir)
+	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %v", err)
 	}
+	client.config = config
 
 	if addr != "" {
 		client.addr = addr
