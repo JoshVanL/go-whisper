@@ -7,29 +7,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/user"
-	"path/filepath"
 )
 
 const (
-	wipserDir      = ".go-wipser"
-	uidDir         = "uid_public_keys"
 	privateKeyFile = "private_key.pem"
 	publicKeyFile  = "public_key.pem"
 )
 
-func RetrieveLocalKey() (*rsa.PrivateKey, error) {
-	if err := ensureKeyDirectory(); err != nil {
+func RetrieveLocalKey(dir string) (*rsa.PrivateKey, error) {
+	if err := ensureKeyDirectory(dir); err != nil {
 		return nil, fmt.Errorf("failed to ensure key directory: %v", err)
 	}
 
-	if err := ensureKeyFiles(); err != nil {
+	if err := ensureKeyFiles(dir); err != nil {
 		return nil, fmt.Errorf("failed to ensure key files: %v", err)
-	}
-
-	dir, err := keyDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get key directory: %v", err)
 	}
 
 	k, err := readPrivateKey(fmt.Sprintf("%s/%s", dir, privateKeyFile))
@@ -84,12 +75,7 @@ func readPublicKey(path string) (*rsa.PublicKey, error) {
 	return k, nil
 }
 
-func ensureKeyDirectory() error {
-	dir, err := keyDir()
-	if err != nil {
-		return fmt.Errorf("failed to get key directory: %v", err)
-	}
-
+func ensureKeyDirectory(dir string) error {
 	if _, err := os.Stat(dir); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0700); err != nil {
@@ -104,36 +90,7 @@ func ensureKeyDirectory() error {
 	return nil
 }
 
-func uidPubkicKeyDirectory() (string, error) {
-	dir, err := uidPublicKeyDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get uids public key directory: %v", err)
-	}
-
-	if f, err := os.Stat(dir); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0700); err != nil {
-				return "", fmt.Errorf("failed to create uids public keys directory: %v", err)
-			}
-
-		} else {
-			return "", fmt.Errorf("failed to check uids public keys directory: %v", err)
-		}
-	} else {
-		if !f.IsDir() {
-			return "", fmt.Errorf("is not a directory: %s", dir)
-		}
-	}
-
-	return dir, nil
-}
-
-func ensureKeyFiles() error {
-	dir, err := keyDir()
-	if err != nil {
-		return fmt.Errorf("failed to get key directory: %v", err)
-	}
-
+func ensureKeyFiles(dir string) error {
 	if _, err := os.Stat(fmt.Sprintf("%s/%s", dir, privateKeyFile)); err != nil {
 		if os.IsNotExist(err) {
 			if err := CreateKeyPair(dir); err != nil {
@@ -145,34 +102,6 @@ func ensureKeyFiles() error {
 	}
 
 	return nil
-}
-
-func keyDir() (string, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("unable to resolve current user: %v", err)
-	}
-
-	_, err = os.Stat(usr.HomeDir)
-	if err != nil {
-		return "", fmt.Errorf("error checking home directory : %v", err)
-	}
-
-	return fmt.Sprintf("%s/%s", usr.HomeDir, wipserDir), nil
-}
-
-func uidPublicKeyDir() (string, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("unable to resolve current user: %v", err)
-	}
-
-	_, err = os.Stat(usr.HomeDir)
-	if err != nil {
-		return "", fmt.Errorf("error checking home directory : %v", err)
-	}
-
-	return filepath.Join(usr.HomeDir, wipserDir), nil
 }
 
 func CreateKeyPair(dir string) error {

@@ -1,19 +1,18 @@
 package server
 
 import (
-	"fmt"
-	"net"
-	"crypto/rsa"
 	"crypto/rand"
+	"crypto/rsa"
+	"fmt"
 	"math"
 	"math/big"
+	"net"
 )
-
 
 func (s *Server) Handle(con net.Conn) {
 	buff := make([]byte, 256)
 
-	_, err := con.Read(buff)
+	n, err := con.Read(buff)
 	if err != nil {
 		return
 	}
@@ -23,7 +22,7 @@ func (s *Server) Handle(con net.Conn) {
 		fmt.Errorf("failed to create new uid: %v", err)
 	}
 
-	fmt.Printf("uid: %v\n", uid)
+	fmt.Printf("buff: %s\nuid: %v\n", buff[0:n], uid)
 
 	//fmt.Printf("(%d) read from connection: %s\n", n, string(buff))
 }

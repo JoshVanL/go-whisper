@@ -1,32 +1,27 @@
 package key
 
 import (
-	"fmt"
-	"regexp"
 	"crypto/rsa"
+	"fmt"
 	"io/ioutil"
+	//"os"
+	"regexp"
 	"strconv"
-	"os"
 
 	"github.com/hashicorp/go-multierror"
+	//"github.com/joshvanl/go-whisper/pkg/client"
 )
 
 var (
-	valid      = regexp.MustCompile("^[0-9]{1,63}.pem$")
-	uid        = regexp.MustCompile("^[0-9]+")
-	configFile = "whisper.conf"
+	valid = regexp.MustCompile("^[0-9]{1,63}.pem$")
+	uid   = regexp.MustCompile("^[0-9]+")
 )
 
-func RetrieveUIDPublicKeys() (map[uint64]*rsa.PublicKey, error) {
+func RetrieveUIDPublicKeys(dir string) (map[uint64]*rsa.PublicKey, error) {
 	var result *multierror.Error
 
-	if err := ensureKeyDirectory(); err != nil {
+	if err := ensureKeyDirectory(dir); err != nil {
 		return nil, fmt.Errorf("failed to ensure key directory: %v", err)
-	}
-
-	dir, err := uidPubkicKeyDirectory()
-	if err != nil {
-		return nil, fmt.Errorf("failed to ensure uid public key directory: %v", err)
 	}
 
 	fs, err := ioutil.ReadDir(dir)
@@ -59,44 +54,46 @@ func RetrieveUIDPublicKeys() (map[uint64]*rsa.PublicKey, error) {
 }
 
 func RetrieveLocalUID() (uint64, error) {
-	dir, err := keyDir()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get key directory: %v", err)
-	}
+	//dir, err := keyDir()
+	//if err != nil {
+	//	return 0, fmt.Errorf("failed to get key directory: %v", err)
+	//}
 
-	path := fmt.Sprintf("%s/%s", dir, configFile)
+	////client.Cl
+	//path := fmt.Sprintf("%s/%s", dir, configFile)
 
-	f, err := os.Open(path)
-	if err != nil {
-		if os.IsNotExist(err) {
+	//f, err := os.Open(path)
+	//if err != nil {
+	//	if os.IsNotExist(err) {
 
-			f, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-			if err != nil {
-				return 0, fmt.Errorf("failed to create config file: %v", err)
-			}
+	//		f, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	//		if err != nil {
+	//			return 0, fmt.Errorf("failed to create config file: %v", err)
+	//		}
 
-		} else {
-			return 0, fmt.Errorf("failed to open config file: %v", err)
-		}
-	}
+	//	} else {
+	//		return 0, fmt.Errorf("failed to open config file: %v", err)
+	//	}
+	//}
 
-	defer f.Close()
+	//defer f.Close()
 
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return 0, fmt.Errorf("failed to read from config file: %v", err)
-	}
+	//b, err := ioutil.ReadFile(path)
+	//if err != nil {
+	//	return 0, fmt.Errorf("failed to read from config file: %v", err)
+	//}
 
-	if len(b) == 0 {
-		return 0, nil
-	}
+	//if len(b) == 0 {
+	//	return 0, nil
+	//}
 
-	uid, err := strconv.ParseInt(string(b[:len(b)-1]), 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse uid from file: %v", err)
-	}
+	//uid, err := strconv.ParseInt(string(b[:len(b)-1]), 10, 64)
+	//if err != nil {
+	//	return 0, fmt.Errorf("failed to parse uid from file: %v", err)
+	//}
 
-	return uint64(uid), nil
+	//return uint64(uid), nil
+	return 0, nil
 }
 
 func validName(name string) bool { return valid.MatchString(name) }

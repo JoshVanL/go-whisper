@@ -1,9 +1,9 @@
 package server
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"net"
-	"crypto/rsa"
 
 	"github.com/sirupsen/logrus"
 
@@ -11,8 +11,10 @@ import (
 )
 
 type Server struct {
-	log  *logrus.Entry
+	log *logrus.Entry
+
 	addr string
+	dir  string
 
 	key  *rsa.PrivateKey
 	conn net.Conn
@@ -20,24 +22,25 @@ type Server struct {
 	uids map[uint64]*rsa.PublicKey
 }
 
-func New(addr string, log *logrus.Entry) (*Server, error) {
+func New(addr string, dir string, log *logrus.Entry) (*Server, error) {
 
-	k, err := key.RetrieveLocalKey()
+	k, err := key.RetrieveLocalKey(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read server key: %v", err)
 	}
 
-	pubKeys, err := key.RetrieveUIDPublicKeys()
+	pubKeys, err := key.RetrieveUIDPublicKeys(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read local client keys: %v", err)
 	}
 
 	return &Server{
-		log: log,
-		addr: addr,
-		key: k,
-		uids: pubKeys,
-	},
+			log:  log,
+			addr: addr,
+			dir:  dir,
+			key:  k,
+			uids: pubKeys,
+		},
 		nil
 
 }

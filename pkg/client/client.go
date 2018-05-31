@@ -18,17 +18,19 @@ const (
 )
 
 type Client struct {
-	log  *logrus.Entry
+	log *logrus.Entry
+
 	addr string
+	dir  string
 
 	key  *rsa.PrivateKey
 	conn net.Conn
 	uid  uint64
 }
 
-func New(addr string, log *logrus.Entry) (*Client, error) {
+func New(addr, dir string, log *logrus.Entry) (*Client, error) {
 
-	k, err := key.RetrieveLocalKey()
+	k, err := key.RetrieveLocalKey(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read client key: %v", err)
 	}
@@ -39,11 +41,12 @@ func New(addr string, log *logrus.Entry) (*Client, error) {
 	}
 
 	return &Client{
-		log: log,
-		addr: addr,
-		key: k,
-		uid: uid,
-	},
+			log:  log,
+			addr: addr,
+			dir:  dir,
+			key:  k,
+			uid:  uid,
+		},
 		nil
 }
 

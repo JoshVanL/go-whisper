@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -12,9 +13,10 @@ import (
 
 const FlagLogLevel = "log-level"
 const FlagServerAddr = "server-address"
+const FlagConfigDir = "config"
 
 var RootCmd = &cobra.Command{
-	Use: "server",
+	Use:   "server",
 	Short: "An end to end encrypted messaging app written in Go.",
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -25,7 +27,24 @@ var RootCmd = &cobra.Command{
 			log.Fatalf("failed to resolve server address: %v", err)
 		}
 
-		s, err := server.New(addr, log)
+		dir, err := cmd.PersistentFlags().GetString(FlagConfigDir)
+		if err != nil {
+			log.Fatalf("failed to resolve configAdirectory flag: %v", err)
+		}
+
+		if dir == "." {
+			dir, err = os.Getwd()
+			if err != nil {
+				log.Fatalf("failed to get working directory: %v", err)
+			}
+		} else {
+			dir, err = homedir.Expand(dir)
+			if err != nil {
+				log.Fatalf("failed to expand go-whipser config directory: %v", err)
+			}
+		}
+
+		s, err := server.New(addr, dir, log)
 		if err != nil {
 			log.Fatalf("error creating server: %v", err)
 		}
@@ -40,6 +59,7 @@ var RootCmd = &cobra.Command{
 func init() {
 	RootCmd.PersistentFlags().IntP(FlagLogLevel, "l", 1, "Set the log level of output. 0-Fatal 1-Info 2-Debug")
 	RootCmd.PersistentFlags().StringP(FlagServerAddr, "s", "127.0.0.1:6667", "Set the address the server will listen to.")
+	RootCmd.PersistentFlags().StringP(FlagConfigDir, "c", "~/.go-whisper", "Directory of go-whipser directory")
 }
 
 func Execute() {
