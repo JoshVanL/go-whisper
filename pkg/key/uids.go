@@ -1,15 +1,15 @@
 package key
 
 import (
-	//"crypto/rsa"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
-	//"github.com/hashicorp/go-multierror"
-	//"github.com/joshvanl/go-whisper/pkg/client"
 )
 
 const (
@@ -40,10 +40,21 @@ func NewUIDs(dir string, uid uint64) (*UIDs, error) {
 	return uids, nil
 }
 
+func (u *UIDs) NewUidFile(uid string, pk *rsa.PublicKey) error {
+	path := filepath.Join(u.uidsPath(), uid)
+	pubBlock := &pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(pk)}
+	return writeKeyPemFile(path, pubBlock)
+}
+
+func (u *UIDs) ReadUidFile(uid string) (*rsa.PublicKey, error) {
+	path := filepath.Join(u.uidsPath(), uid)
+	return readPublicKey(path)
+}
+
 func (u *UIDs) ensureUIDsDirectory() error {
 	stat, err := os.Stat(u.uidsPath())
 	if os.IsNotExist(err) {
-		if err := os.Mkdir(u.uidsPath(), 0600); err != nil {
+		if err := os.Mkdir(u.uidsPath(), 0700); err != nil {
 			return fmt.Errorf("failed to create uids directory: %v", err)
 		}
 

@@ -1,15 +1,15 @@
 package server
 
 import (
-	"crypto"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"net"
+
+	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
 func (s *Server) Handle(conn net.Conn) {
@@ -63,19 +63,7 @@ func (s *Server) newClient(conn net.Conn) error {
 	d := x509.MarshalPKCS1PublicKey(&s.key.PublicKey)
 	message := fmt.Sprintf("%s_%s", uid, hex.EncodeToString(d))
 
-	opts := &rsa.PSSOptions{
-		SaltLength: rsa.PSSSaltLengthEqualsHash,
-		Hash:       crypto.SHA256,
-	}
-
-	hash := opts.Hash.New()
-	_, err = hash.Write([]byte(message))
-	if err != nil {
-		return fmt.Errorf("failed to hash message: %v", err)
-	}
-	hashed := hash.Sum(nil)
-
-	signiture, err := s.key.Sign(rand.Reader, hashed, opts)
+	signiture, err := key.SignMessage(s.key, message)
 	if err != nil {
 		return fmt.Errorf("failed to sign message for client: %v", err)
 	}

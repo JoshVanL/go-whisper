@@ -51,11 +51,10 @@ func New(addr, dir string, log *logrus.Entry) (*Client, error) {
 		return nil, fmt.Errorf("failed to read config: %v", err)
 	}
 	client.config = config
+	client.addr = client.config.Address
 
 	if addr != "" {
 		client.addr = addr
-	} else {
-		client.addr = client.config.Address
 	}
 
 	log.Infof("Connecting to server...")

@@ -1,6 +1,7 @@
 package key
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -9,7 +10,7 @@ import (
 )
 
 const (
-	keySize = 2048
+	keySize = 4056
 )
 
 func CreateKeyPair(dir string) error {
@@ -39,4 +40,44 @@ func generateRSAKey() (*rsa.PrivateKey, error) {
 	}
 
 	return k, nil
+}
+
+func VerifyPayload(pk *rsa.PublicKey, payload string, sig []byte) error {
+	opts := &rsa.PSSOptions{
+		SaltLength: rsa.PSSSaltLengthEqualsHash,
+		Hash:       crypto.SHA512,
+	}
+
+	hash := opts.Hash.New()
+	_, err := hash.Write([]byte(payload))
+	if err != nil {
+		return fmt.Errorf("failed to hash payload: %v", err)
+	}
+
+	if err := rsa.VerifyPSS(pk, crypto.SHA512, hash.Sum(nil), []byte(sig), opts); err != nil {
+		return fmt.Errorf("unable to verify payload: %v", err)
+	}
+
+	return nil
+}
+
+func SignMessage(pk *rsa.PrivateKey, message string) ([]byte, error) {
+	opts := &rsa.PSSOptions{
+		SaltLength: rsa.PSSSaltLengthEqualsHash,
+		Hash:       crypto.SHA512,
+	}
+
+	hash := opts.Hash.New()
+	_, err := hash.Write([]byte(message))
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash message: %v", err)
+	}
+	hashed := hash.Sum(nil)
+
+	signiture, err := pk.Sign(rand.Reader, hashed, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign message: %v", err)
+	}
+
+	return signiture, nil
 }
