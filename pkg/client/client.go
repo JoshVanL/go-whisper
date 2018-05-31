@@ -38,15 +38,20 @@ func New(addr, dir string, log *logrus.Entry) (*Client, error) {
 	}
 
 	client := &Client{
-		log:  log,
-		addr: addr,
-		dir:  dir,
-		key:  k,
+		log: log,
+		dir: dir,
+		key: k,
 	}
 
 	log.Infof("Retrieving local client config...")
 	if err := client.ReadConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config: %v", err)
+	}
+
+	if addr != "" {
+		client.addr = addr
+	} else {
+		client.addr = client.config.Address
 	}
 
 	log.Infof("Connecting to server...")

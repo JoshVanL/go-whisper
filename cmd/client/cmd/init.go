@@ -60,7 +60,7 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.PersistentFlags().IntP(FlagLogLevel, "l", 1, "Set the log level of output. 0-Fatal 1-Info 2-Debug")
-	RootCmd.PersistentFlags().StringP(FlagServerAddr, "s", "127.0.0.1:6667", "Set the address of the server")
+	RootCmd.PersistentFlags().StringP(FlagServerAddr, "s", "", "Set the address of the server (default 127.0.0.1:6667 in config)")
 	RootCmd.PersistentFlags().StringP(FlagConfigDir, "c", "~/.go-whisper", "Directory of go-whipser directory")
 }
 

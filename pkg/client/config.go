@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -16,15 +17,25 @@ const (
 type Config struct {
 	UID     uint64 `yaml:"uid"`
 	Address string `yaml:"address"`
+	dir     string
 }
 
 func (c *Client) ReadConfig() error {
 
-	path := filepath.Join(c.dir, ConfigFile)
+	config := &Config{
+		dir: c.dir,
+	}
+	path := config.Path()
 
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		return c.createNewConfig(path)
+		if err := config.New(path); err != nil {
+			return err
+		}
+
+		c.config = config
+		return nil
+
 	} else if err != nil {
 		return fmt.Errorf("failed to get status of config file: %v", err)
 	}
@@ -45,7 +56,6 @@ func (c *Client) ReadConfig() error {
 	}
 	d = d[:n]
 
-	config := new(Config)
 	if err := yaml.Unmarshal(d, config); err != nil {
 		return fmt.Errorf("failed to unmashal config from file: %v", err)
 	}
@@ -54,7 +64,7 @@ func (c *Client) ReadConfig() error {
 	return nil
 }
 
-func (c *Client) createNewConfig(path string) error {
+func (c *Config) New(path string) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %v", err)
@@ -80,7 +90,24 @@ func (c *Client) createNewConfig(path string) error {
 		return fmt.Errorf("failed to write config to file: %v", err)
 	}
 
-	c.config = config
+	c = config
 
 	return nil
+}
+
+func (c *Config) Write() error {
+	d, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("failed to mashal config for writing to file: %v", err)
+	}
+
+	if err := ioutil.WriteFile(c.Path(), d, 0600); err != nil {
+		return fmt.Errorf("failed to writing config to file:  %v", err)
+	}
+
+	return nil
+}
+
+func (c *Config) Path() string {
+	return filepath.Join(c.dir, ConfigFile)
 }
