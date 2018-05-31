@@ -5,12 +5,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	//"os"
+	//"path/filepath"
 	"regexp"
 	"strconv"
 
 	"github.com/hashicorp/go-multierror"
 	//"github.com/joshvanl/go-whisper/pkg/client"
 )
+
+//const (
+//	configFile = "client.conf"
+//)
 
 var (
 	valid = regexp.MustCompile("^[0-9]{1,63}.pem$")
@@ -53,15 +58,10 @@ func RetrieveUIDPublicKeys(dir string) (map[uint64]*rsa.PublicKey, error) {
 	return keys, result.ErrorOrNil()
 }
 
-func RetrieveLocalUID() (uint64, error) {
-	//dir, err := keyDir()
-	//if err != nil {
-	//	return 0, fmt.Errorf("failed to get key directory: %v", err)
-	//}
+func RetrieveLocalUID(dir string) (uint64, error) {
 
-	////client.Cl
-	//path := fmt.Sprintf("%s/%s", dir, configFile)
-
+	//client.Cl
+	//th := filepath.Join(dir, configFile)
 	//f, err := os.Open(path)
 	//if err != nil {
 	//	if os.IsNotExist(err) {
@@ -96,7 +96,9 @@ func RetrieveLocalUID() (uint64, error) {
 	return 0, nil
 }
 
-func validName(name string) bool { return valid.MatchString(name) }
+func validName(name string) bool {
+	return valid.MatchString(name)
+}
 
 func uidFromName(name string) (uint64, error) {
 	return strconv.ParseUint(uid.FindString(name), 10, 64)

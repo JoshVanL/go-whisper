@@ -49,6 +49,7 @@ var RootCmd = &cobra.Command{
 			log.Fatalf("error creating server: %v", err)
 		}
 
+		log.Infof("Serving.")
 		if err := s.Serve(); err != nil {
 			log.Fatalf("error serving whispers: %v", err)
 		}

@@ -24,11 +24,13 @@ type Server struct {
 
 func New(addr string, dir string, log *logrus.Entry) (*Server, error) {
 
+	log.Infof("Retrieving local key pair...")
 	k, err := key.RetrieveLocalKey(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read server key: %v", err)
 	}
 
+	log.Infof("Retrieving local uid public keys...")
 	pubKeys, err := key.RetrieveUIDPublicKeys(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read local client keys: %v", err)

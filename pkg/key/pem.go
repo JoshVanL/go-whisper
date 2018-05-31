@@ -104,26 +104,6 @@ func ensureKeyFiles(dir string) error {
 	return nil
 }
 
-func CreateKeyPair(dir string) error {
-	k, err := generateRSAKey()
-	if err != nil {
-		return err
-	}
-
-	privBlock := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
-	pubBlock := &pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(&k.PublicKey)}
-
-	if err := writeKeyPemFile(fmt.Sprintf("%s/%s", dir, privateKeyFile), privBlock); err != nil {
-		return fmt.Errorf("failed to write private key to file: %v", err)
-	}
-
-	if err := writeKeyPemFile(fmt.Sprintf("%s/%s", dir, publicKeyFile), pubBlock); err != nil {
-		return fmt.Errorf("failed to write public key to file: %v", err)
-	}
-
-	return nil
-}
-
 func writeKeyPemFile(file string, key *pem.Block) error {
 	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {

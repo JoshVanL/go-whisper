@@ -25,29 +25,36 @@ type Client struct {
 
 	key  *rsa.PrivateKey
 	conn net.Conn
-	uid  uint64
+
+	config *Config
 }
 
 func New(addr, dir string, log *logrus.Entry) (*Client, error) {
 
+	log.Infof("Retrieving local key pair...")
 	k, err := key.RetrieveLocalKey(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read client key: %v", err)
 	}
 
-	uid, err := key.RetrieveLocalUID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read client config: %v", err)
+	client := &Client{
+		log:  log,
+		addr: addr,
+		dir:  dir,
+		key:  k,
 	}
 
-	return &Client{
-			log:  log,
-			addr: addr,
-			dir:  dir,
-			key:  k,
-			uid:  uid,
-		},
-		nil
+	log.Infof("Retrieving local client config...")
+	if err := client.ReadConfig(); err != nil {
+		return nil, fmt.Errorf("failed to read config: %v", err)
+	}
+
+	log.Infof("Connecting to server...")
+	if err := client.Connect(); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func (c *Client) Connect() error {
@@ -55,12 +62,13 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to server: %v", err)
 	}
-
 	c.conn = conn
 
-	if _, err := c.conn.Write([]byte("hello")); err != nil {
-		return fmt.Errorf("failed to write to connection: %v", err)
-	}
+	c.log.Infof("Connection successful.")
+
+	//if _, err := c.conn.Write([]byte("hello")); err != nil {
+	//	return fmt.Errorf("failed to write to connection: %v", err)
+	//}
 
 	return nil
 }
