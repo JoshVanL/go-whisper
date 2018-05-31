@@ -61,7 +61,7 @@ func (s *Server) newClient(conn net.Conn) error {
 	}
 
 	d := x509.MarshalPKCS1PublicKey(&s.key.PublicKey)
-	messge := fmt.Sprintf("%s____%s", uid, hex.EncodeToString(d))
+	message := fmt.Sprintf("%s_%s", uid, hex.EncodeToString(d))
 
 	opts := &rsa.PSSOptions{
 		SaltLength: rsa.PSSSaltLengthEqualsHash,
@@ -69,7 +69,7 @@ func (s *Server) newClient(conn net.Conn) error {
 	}
 
 	hash := opts.Hash.New()
-	_, err = hash.Write([]byte(messge))
+	_, err = hash.Write([]byte(message))
 	if err != nil {
 		return fmt.Errorf("failed to hash message: %v", err)
 	}
@@ -80,7 +80,7 @@ func (s *Server) newClient(conn net.Conn) error {
 		return fmt.Errorf("failed to sign message for client: %v", err)
 	}
 
-	payload := fmt.Sprintf("%s____%s", messge, hex.EncodeToString(signiture))
+	payload := fmt.Sprintf("%s_%s", message, hex.EncodeToString(signiture))
 	_, err = conn.Write([]byte(payload))
 	if err != nil {
 		return fmt.Errorf("failed to send payload to client: %v", err)
