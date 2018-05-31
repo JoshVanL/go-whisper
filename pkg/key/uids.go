@@ -4,8 +4,8 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io/ioutil"
-	//"os"
-	//"path/filepath"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 
@@ -13,14 +13,63 @@ import (
 	//"github.com/joshvanl/go-whisper/pkg/client"
 )
 
-//const (
-//	configFile = "client.conf"
-//)
+const (
+	uidDirectory = "uids"
+)
 
 var (
 	valid = regexp.MustCompile("^[0-9]{1,63}.pem$")
 	uid   = regexp.MustCompile("^[0-9]+")
 )
+
+type UIDs struct {
+	dir string
+	UID uint64
+}
+
+func NewUIDs(dir string, uid uint64) (*UIDs, error) {
+
+	uids := &UIDs{
+		dir: dir,
+		UID: uid,
+	}
+
+	if err := uids.ensureUIDsDirectory(); err != nil {
+		return nil, err
+	}
+
+	return uids, nil
+}
+
+func (u *UIDs) ensureUIDsDirectory() error {
+	stat, err := os.Stat(u.uidsPath())
+	if os.IsNotExist(err) {
+		f, err := os.Create(u.uidsPath())
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		if err := f.Chmod(os.ModeDir); err != nil {
+			return fmt.Errorf("failed to change mode of uids directory: %v", err)
+		}
+
+		return nil
+
+	} else if err != nil {
+		return fmt.Errorf("error checking status of uids directory: %v", err)
+	}
+
+	if !stat.IsDir() {
+		return fmt.Errorf("uids path is not a directory: %s", u.uidsPath())
+	}
+
+	return nil
+}
+
+func (u *UIDs) uidsPath() string {
+	return filepath.Join(u.dir, uidDirectory)
+}
 
 func RetrieveUIDPublicKeys(dir string) (map[uint64]*rsa.PublicKey, error) {
 	var result *multierror.Error
@@ -56,6 +105,14 @@ func RetrieveUIDPublicKeys(dir string) (map[uint64]*rsa.PublicKey, error) {
 	}
 
 	return keys, result.ErrorOrNil()
+}
+
+func validName(name string) bool {
+	return valid.MatchString(name)
+}
+
+func uidFromName(name string) (uint64, error) {
+	return strconv.ParseUint(uid.FindString(name), 10, 64)
 }
 
 func RetrieveLocalUID(dir string) (uint64, error) {
@@ -94,12 +151,4 @@ func RetrieveLocalUID(dir string) (uint64, error) {
 
 	//return uint64(uid), nil
 	return 0, nil
-}
-
-func validName(name string) bool {
-	return valid.MatchString(name)
-}
-
-func uidFromName(name string) (uint64, error) {
-	return strconv.ParseUint(uid.FindString(name), 10, 64)
 }

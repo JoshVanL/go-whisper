@@ -22,6 +22,7 @@ type Client struct {
 
 	addr string
 	dir  string
+	uids *key.UIDs
 
 	key  *rsa.PrivateKey
 	conn net.Conn
@@ -68,6 +69,10 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("failed to connect to server: %v", err)
 	}
 	c.conn = conn
+
+	if err := c.Handshake(); err != nil {
+		return fmt.Errorf("failed to handshake with the server: %v", err)
+	}
 
 	c.log.Infof("Connection successful.")
 
