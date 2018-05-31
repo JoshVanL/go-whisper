@@ -61,6 +61,12 @@ func New(addr string, dir string, log *logrus.Entry) (*Server, error) {
 	}
 	server.uids = uids
 
+	clientUids, err := server.uids.UIDsFromFile()
+	if err != nil {
+		return nil, err
+	}
+	server.clientUids = clientUids
+
 	return server, nil
 }
 
