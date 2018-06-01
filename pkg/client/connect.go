@@ -1,10 +1,13 @@
 package client
 
 import (
+	"bytes"
 	"crypto/x509"
-	"encoding/hex"
 	"fmt"
-	"strings"
+)
+
+var (
+	MessageBreak = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
 func (c *Client) Handshake() error {
@@ -20,7 +23,7 @@ func (c *Client) Handshake() error {
 }
 
 func (c *Client) FirstConnection() error {
-	_, err := c.conn.Write(append([]byte("first connection_"), []byte(c.key.PublicKey())...))
+	_, err := c.conn.Write(append(append([]byte("first connection"), MessageBreak...), []byte(c.key.PublicKey())...))
 	if err != nil {
 		return fmt.Errorf("failed to write first connection: %v", err)
 	}
@@ -30,7 +33,6 @@ func (c *Client) FirstConnection() error {
 	if err != nil {
 		return fmt.Errorf("failed to read from connection: %v", err)
 	}
-
 	d = d[:n]
 
 	rec := decodeMessage(d)
@@ -39,22 +41,11 @@ func (c *Client) FirstConnection() error {
 	}
 	uidStr, pkStr, sigStr := rec[0], rec[1], rec[2]
 
-	pkByte, err := hex.DecodeString(string(pkStr))
-	if err != nil {
-		return fmt.Errorf("failed to decode public key hex string: %v", err)
-	}
-
-	sigByte, err := hex.DecodeString(string(sigStr))
-	if err != nil {
-		fmt.Errorf("failed to decode signiture hex string: %v", err)
-	}
-
-	pk, err := x509.ParsePKCS1PublicKey(pkByte)
+	pk, err := x509.ParsePKCS1PublicKey(pkStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse server public key: %v", err)
 	}
-
-	if err := c.key.VerifyPayload(pk, fmt.Sprintf("%s_%s", uidStr, pkStr), sigByte); err != nil {
+	if err := c.key.VerifyPayload(pk, append(append(uidStr, MessageBreak...), pkStr...), sigStr); err != nil {
 		return err
 	}
 
@@ -65,6 +56,6 @@ func (c *Client) FirstConnection() error {
 	return nil
 }
 
-func decodeMessage(d []byte) []string {
-	return strings.Split(string(d), "_")
+func decodeMessage(d []byte) [][]byte {
+	return bytes.Split(d, MessageBreak)
 }

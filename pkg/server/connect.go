@@ -1,14 +1,17 @@
 package server
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/x509"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"net"
-	"strings"
+)
+
+var (
+	MessageBreak = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
 func (s *Server) Handle(conn net.Conn) {
@@ -59,18 +62,13 @@ func (s *Server) newUID() (string, error) {
 	}
 }
 
-func (s *Server) newClient(conn net.Conn, recv []string) error {
+func (s *Server) newClient(conn net.Conn, recv [][]byte) error {
 	uid, err := s.newUID()
 	if err != nil {
 		fmt.Errorf("failed to create new uid: %v", err)
 	}
 
-	pkd, err := hex.DecodeString(recv[1])
-	if err != nil {
-		return fmt.Errorf("failed to decode client pk hex string: %v", err)
-	}
-
-	pk, err := x509.ParsePKCS1PublicKey(pkd)
+	pk, err := x509.ParsePKCS1PublicKey(recv[1])
 	if err != nil {
 		return fmt.Errorf("failed to parse client public key: %v", err)
 	}
@@ -79,13 +77,13 @@ func (s *Server) newClient(conn net.Conn, recv []string) error {
 		return fmt.Errorf("failed to store client public key: %v", err)
 	}
 
-	message := fmt.Sprintf("%s_%s", uid, s.key.PublicKey())
+	message := append(append([]byte(uid), MessageBreak...), s.key.PublicKey()...)
 	signiture, err := s.key.SignMessage(message)
 	if err != nil {
 		return fmt.Errorf("failed to sign message for client: %v", err)
 	}
 
-	payload := fmt.Sprintf("%s_%s", message, hex.EncodeToString(signiture))
+	payload := append(append(message, MessageBreak...), signiture...)
 	_, err = conn.Write([]byte(payload))
 	if err != nil {
 		return fmt.Errorf("failed to send payload to client: %v", err)
@@ -94,6 +92,6 @@ func (s *Server) newClient(conn net.Conn, recv []string) error {
 	return nil
 }
 
-func decodeMessage(d []byte) []string {
-	return strings.Split(string(d), "_")
+func decodeMessage(d []byte) [][]byte {
+	return bytes.Split(d, MessageBreak)
 }

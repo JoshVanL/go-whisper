@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 )
@@ -63,7 +62,7 @@ func (k *Key) generateRSAKey() (*rsa.PrivateKey, error) {
 	return sk, nil
 }
 
-func (k *Key) VerifyPayload(pk *rsa.PublicKey, payload string, sig []byte) error {
+func (k *Key) VerifyPayload(pk *rsa.PublicKey, payload []byte, sig []byte) error {
 	opts := &rsa.PSSOptions{
 		SaltLength: rsa.PSSSaltLengthEqualsHash,
 		Hash:       crypto.SHA512,
@@ -82,14 +81,14 @@ func (k *Key) VerifyPayload(pk *rsa.PublicKey, payload string, sig []byte) error
 	return nil
 }
 
-func (k *Key) SignMessage(message string) ([]byte, error) {
+func (k *Key) SignMessage(message []byte) ([]byte, error) {
 	opts := &rsa.PSSOptions{
 		SaltLength: rsa.PSSSaltLengthEqualsHash,
 		Hash:       crypto.SHA512,
 	}
 
 	hash := opts.Hash.New()
-	_, err := hash.Write([]byte(message))
+	_, err := hash.Write(message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash message: %v", err)
 	}
@@ -103,8 +102,8 @@ func (k *Key) SignMessage(message string) ([]byte, error) {
 	return signiture, nil
 }
 
-func (k *Key) PublicKey() string {
-	return hex.EncodeToString(x509.MarshalPKCS1PublicKey(&k.sk.PublicKey))
+func (k *Key) PublicKey() []byte {
+	return x509.MarshalPKCS1PublicKey(&k.sk.PublicKey)
 }
 
 func (k *Key) Key() *rsa.PrivateKey {
