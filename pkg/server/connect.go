@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"net"
+	"strings"
 )
 
 func (s *Server) Handle(conn net.Conn) {
@@ -21,18 +22,24 @@ func (s *Server) Handle(conn net.Conn) {
 
 	fmt.Printf("buff: %s\n", buff[:n])
 
-	if string(buff) == "first connection" {
-		err = s.newClient(conn)
+	payload := decodeMessage(buff)
+
+	if len(payload) == 0 {
+		return
+	}
+
+	if string(payload[0]) == "first connection" {
+		if len(payload) != 2 {
+			return
+		}
+
+		err = s.newClient(conn, payload)
 		if err != nil {
 			s.log.Errorf("error handling new user: %v", err)
 		}
 
 		return
 	}
-
-	return
-
-	//fmt.Printf("(%d) read from connection: %s\n", n, string(buff))
 }
 
 func (s *Server) newUID() (string, error) {
@@ -52,15 +59,27 @@ func (s *Server) newUID() (string, error) {
 	}
 }
 
-func (s *Server) newClient(conn net.Conn) error {
+func (s *Server) newClient(conn net.Conn, recv []string) error {
 	uid, err := s.newUID()
 	if err != nil {
 		fmt.Errorf("failed to create new uid: %v", err)
 	}
 
-	d := x509.MarshalPKCS1PublicKey(&s.key.Key().PublicKey)
-	message := fmt.Sprintf("%s_%s", uid, hex.EncodeToString(d))
+	pkd, err := hex.DecodeString(recv[1])
+	if err != nil {
+		return fmt.Errorf("failed to decode client pk hex string: %v", err)
+	}
 
+	pk, err := x509.ParsePKCS1PublicKey(pkd)
+	if err != nil {
+		return fmt.Errorf("failed to parse client public key: %v", err)
+	}
+
+	if err := s.key.NewUidFile(uid, pk); err != nil {
+		return fmt.Errorf("failed to store client public key: %v", err)
+	}
+
+	message := fmt.Sprintf("%s_%s", uid, s.key.PublicKey())
 	signiture, err := s.key.SignMessage(message)
 	if err != nil {
 		return fmt.Errorf("failed to sign message for client: %v", err)
@@ -73,4 +92,8 @@ func (s *Server) newClient(conn net.Conn) error {
 	}
 
 	return nil
+}
+
+func decodeMessage(d []byte) []string {
+	return strings.Split(string(d), "_")
 }

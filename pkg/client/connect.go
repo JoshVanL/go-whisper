@@ -20,7 +20,7 @@ func (c *Client) Handshake() error {
 }
 
 func (c *Client) FirstConnection() error {
-	_, err := c.conn.Write([]byte("first connection"))
+	_, err := c.conn.Write(append([]byte("first connection_"), []byte(c.key.PublicKey())...))
 	if err != nil {
 		return fmt.Errorf("failed to write first connection: %v", err)
 	}

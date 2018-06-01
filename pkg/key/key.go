@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 )
@@ -100,6 +101,10 @@ func (k *Key) SignMessage(message string) ([]byte, error) {
 	}
 
 	return signiture, nil
+}
+
+func (k *Key) PublicKey() string {
+	return hex.EncodeToString(x509.MarshalPKCS1PublicKey(&k.sk.PublicKey))
 }
 
 func (k *Key) Key() *rsa.PrivateKey {
