@@ -8,8 +8,6 @@ import (
 	"math"
 	"math/big"
 	"net"
-
-	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
 func (s *Server) Handle(conn net.Conn) {
@@ -60,10 +58,10 @@ func (s *Server) newClient(conn net.Conn) error {
 		fmt.Errorf("failed to create new uid: %v", err)
 	}
 
-	d := x509.MarshalPKCS1PublicKey(&s.key.PublicKey)
+	d := x509.MarshalPKCS1PublicKey(&s.key.Key().PublicKey)
 	message := fmt.Sprintf("%s_%s", uid, hex.EncodeToString(d))
 
-	signiture, err := key.SignMessage(s.key, message)
+	signiture, err := s.key.SignMessage(message)
 	if err != nil {
 		return fmt.Errorf("failed to sign message for client: %v", err)
 	}

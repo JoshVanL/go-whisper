@@ -21,40 +21,31 @@ var (
 	uid   = regexp.MustCompile("^[0-9]+")
 )
 
-type UIDs struct {
-	dir string
-	UID uint64
-}
+func (k *Key) NewUIDs(uid uint64) error {
+	k.uid = uid
 
-func NewUIDs(dir string, uid uint64) (*UIDs, error) {
-
-	uids := &UIDs{
-		dir: dir,
-		UID: uid,
+	if err := k.ensureUIDsDirectory(); err != nil {
+		return err
 	}
 
-	if err := uids.ensureUIDsDirectory(); err != nil {
-		return nil, err
-	}
-
-	return uids, nil
+	return nil
 }
 
-func (u *UIDs) NewUidFile(uid string, pk *rsa.PublicKey) error {
-	path := filepath.Join(u.uidsPath(), uid)
+func (k *Key) NewUidFile(uid string, pk *rsa.PublicKey) error {
+	path := filepath.Join(k.uidsPath(), uid)
 	pubBlock := &pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(pk)}
-	return writeKeyPemFile(path, pubBlock)
+	return k.writeKeyPemFile(path, pubBlock)
 }
 
-func (u *UIDs) ReadUidFile(uid string) (*rsa.PublicKey, error) {
-	path := filepath.Join(u.uidsPath(), uid)
+func (k *Key) ReadUidFile(uid string) (*rsa.PublicKey, error) {
+	path := filepath.Join(k.uidsPath(), uid)
 	return readPublicKey(path)
 }
 
-func (u *UIDs) ensureUIDsDirectory() error {
-	stat, err := os.Stat(u.uidsPath())
+func (k *Key) ensureUIDsDirectory() error {
+	stat, err := os.Stat(k.uidsPath())
 	if os.IsNotExist(err) {
-		if err := os.Mkdir(u.uidsPath(), 0700); err != nil {
+		if err := os.Mkdir(k.uidsPath(), 0700); err != nil {
 			return fmt.Errorf("failed to create uids directory: %v", err)
 		}
 
@@ -65,14 +56,14 @@ func (u *UIDs) ensureUIDsDirectory() error {
 	}
 
 	if !stat.IsDir() {
-		return fmt.Errorf("uids path is not a directory: %s", u.uidsPath())
+		return fmt.Errorf("uids path is not a directory: %s", k.uidsPath())
 	}
 
 	return nil
 }
 
-func (u *UIDs) UIDsFromFile() (map[string]bool, error) {
-	fs, err := ioutil.ReadDir(u.uidsPath())
+func (k *Key) UIDsFromFile() (map[string]bool, error) {
+	fs, err := ioutil.ReadDir(k.uidsPath())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list uid files: %v", err)
 	}
@@ -87,8 +78,8 @@ func (u *UIDs) UIDsFromFile() (map[string]bool, error) {
 	return uids, nil
 }
 
-func (u *UIDs) uidsPath() string {
-	return filepath.Join(u.dir, uidDirectory)
+func (k *Key) uidsPath() string {
+	return filepath.Join(k.dir, uidDirectory)
 }
 
 //func RetrieveUIDPublicKeys(dir string) (map[uint64]*rsa.PublicKey, error) {

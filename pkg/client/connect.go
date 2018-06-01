@@ -5,18 +5,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
-
-	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
 func (c *Client) Handshake() error {
-	uids, err := key.NewUIDs(c.dir, c.config.UID)
-	if err != nil {
+	if err := c.key.NewUIDs(c.config.UID); err != nil {
 		return err
 	}
-	c.uids = uids
 
-	if c.uids.UID == 0 {
+	if c.key.Uid() == 0 {
 		return c.FirstConnection()
 	}
 
@@ -58,11 +54,11 @@ func (c *Client) FirstConnection() error {
 		return fmt.Errorf("failed to parse server public key: %v", err)
 	}
 
-	if err := key.VerifyPayload(pk, fmt.Sprintf("%s_%s", uidStr, pkStr), sigByte); err != nil {
+	if err := c.key.VerifyPayload(pk, fmt.Sprintf("%s_%s", uidStr, pkStr), sigByte); err != nil {
 		return err
 	}
 
-	if err := c.uids.NewUidFile("0", pk); err != nil {
+	if err := c.key.NewUidFile("0", pk); err != nil {
 		return err
 	}
 

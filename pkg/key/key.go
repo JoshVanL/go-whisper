@@ -13,36 +13,56 @@ const (
 	keySize = 4056
 )
 
-func CreateKeyPair(dir string) error {
-	k, err := generateRSAKey()
+type Key struct {
+	dir string
+	uid uint64
+	sk  *rsa.PrivateKey
+}
+
+func New(dir string) (*Key, error) {
+	key := &Key{
+		dir: dir,
+	}
+
+	sk, err := key.retrieveLocalKey()
+	if err != nil {
+		return nil, err
+	}
+	key.sk = sk
+
+	return key, nil
+}
+
+func (k *Key) createKeyPair() error {
+	sk, err := k.generateRSAKey()
 	if err != nil {
 		return err
 	}
 
-	privBlock := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
-	pubBlock := &pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(&k.PublicKey)}
+	privBlock := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(sk)}
+	pubBlock := &pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(&sk.PublicKey)}
 
-	if err := writeKeyPemFile(fmt.Sprintf("%s/%s", dir, privateKeyFile), privBlock); err != nil {
+	if err := k.writeKeyPemFile(fmt.Sprintf("%s/%s", k.dir, privateKeyFile), privBlock); err != nil {
 		return fmt.Errorf("failed to write private key to file: %v", err)
 	}
 
-	if err := writeKeyPemFile(fmt.Sprintf("%s/%s", dir, publicKeyFile), pubBlock); err != nil {
+	if err := k.writeKeyPemFile(fmt.Sprintf("%s/%s", k.dir, publicKeyFile), pubBlock); err != nil {
 		return fmt.Errorf("failed to write public key to file: %v", err)
 	}
 
 	return nil
 }
 
-func generateRSAKey() (*rsa.PrivateKey, error) {
-	k, err := rsa.GenerateKey(rand.Reader, keySize)
+func (k *Key) generateRSAKey() (*rsa.PrivateKey, error) {
+	sk, err := rsa.GenerateKey(rand.Reader, keySize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate RSA key pair: %v", err)
 	}
 
-	return k, nil
+	return sk, nil
 }
 
-func VerifyPayload(pk *rsa.PublicKey, payload string, sig []byte) error {
+func (k *Key) VerifyPayload(pk *rsa.PublicKey, payload string, sig []byte) error {
 	opts := &rsa.PSSOptions{
 		SaltLength: rsa.PSSSaltLengthEqualsHash,
 		Hash:       crypto.SHA512,
@@ -61,7 +81,7 @@ func VerifyPayload(pk *rsa.PublicKey, payload string, sig []byte) error {
 	return nil
 }
 
-func SignMessage(pk *rsa.PrivateKey, message string) ([]byte, error) {
+func (k *Key) SignMessage(message string) ([]byte, error) {
 	opts := &rsa.PSSOptions{
 		SaltLength: rsa.PSSSaltLengthEqualsHash,
 		Hash:       crypto.SHA512,
@@ -74,10 +94,18 @@ func SignMessage(pk *rsa.PrivateKey, message string) ([]byte, error) {
 	}
 	hashed := hash.Sum(nil)
 
-	signiture, err := pk.Sign(rand.Reader, hashed, opts)
+	signiture, err := k.sk.Sign(rand.Reader, hashed, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign message: %v", err)
 	}
 
 	return signiture, nil
+}
+
+func (k *Key) Key() *rsa.PrivateKey {
+	return k.sk
+}
+
+func (k *Key) Uid() uint64 {
+	return k.uid
 }

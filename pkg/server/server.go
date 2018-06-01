@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/rsa"
 	"fmt"
 	"net"
 
@@ -18,9 +17,8 @@ type Server struct {
 	dir  string
 
 	clientUids map[string]bool
-	uids       *key.UIDs
 
-	key  *rsa.PrivateKey
+	key  *key.Key
 	conn net.Conn
 
 	config *config.Config
@@ -29,7 +27,7 @@ type Server struct {
 func New(addr string, dir string, log *logrus.Entry) (*Server, error) {
 
 	log.Infof("Retrieving local key pair...")
-	k, err := key.RetrieveLocalKey(dir)
+	k, err := key.New(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read server key: %v", err)
 	}
@@ -55,13 +53,11 @@ func New(addr string, dir string, log *logrus.Entry) (*Server, error) {
 	}
 
 	log.Infof("Retrieving local uids...")
-	uids, err := key.NewUIDs(server.dir, 0)
-	if err != nil {
+	if err := server.key.NewUIDs(0); err != nil {
 		return nil, err
 	}
-	server.uids = uids
 
-	clientUids, err := server.uids.UIDsFromFile()
+	clientUids, err := server.key.UIDsFromFile()
 	if err != nil {
 		return nil, err
 	}

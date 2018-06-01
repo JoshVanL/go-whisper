@@ -23,9 +23,9 @@ type Client struct {
 
 	addr string
 	dir  string
-	uids *key.UIDs
+	//uids *key.UIDs
 
-	key  *rsa.PrivateKey
+	key  *key.Key
 	conn net.Conn
 
 	config *config.Config
@@ -34,7 +34,7 @@ type Client struct {
 func New(addr, dir string, log *logrus.Entry) (*Client, error) {
 
 	log.Infof("Retrieving local key pair...")
-	k, err := key.RetrieveLocalKey(dir)
+	k, err := key.New(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read client key: %v", err)
 	}
@@ -97,7 +97,7 @@ func (c *Client) encryptMessage(message, label []byte, k *rsa.PublicKey) ([]byte
 
 func (c *Client) decryptCipherText(cipher, label []byte) ([]byte, error) {
 
-	plainText, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, c.key, cipher, label)
+	plainText, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, c.key.Key(), cipher, label)
 	if err != nil {
 		return nil, fmt.Errorf("decryption of ciphertext failed: %v", err)
 	}

@@ -14,24 +14,24 @@ const (
 	publicKeyFile  = "public_key.pem"
 )
 
-func RetrieveLocalKey(dir string) (*rsa.PrivateKey, error) {
-	if err := ensureKeyDirectory(dir); err != nil {
+func (k *Key) retrieveLocalKey() (*rsa.PrivateKey, error) {
+	if err := k.ensureKeyDirectory(); err != nil {
 		return nil, fmt.Errorf("failed to ensure key directory: %v", err)
 	}
 
-	if err := ensureKeyFiles(dir); err != nil {
+	if err := k.ensureKeyFiles(); err != nil {
 		return nil, fmt.Errorf("failed to ensure key files: %v", err)
 	}
 
-	k, err := readPrivateKey(fmt.Sprintf("%s/%s", dir, privateKeyFile))
+	sk, err := k.readPrivateKey(fmt.Sprintf("%s/%s", k.dir, privateKeyFile))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key: %v", err)
 	}
 
-	return k, nil
+	return sk, nil
 }
 
-func readPrivateKey(path string) (*rsa.PrivateKey, error) {
+func (k *Key) readPrivateKey(path string) (*rsa.PrivateKey, error) {
 	f, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open private key file for reading: %v", err)
@@ -45,12 +45,12 @@ func readPrivateKey(path string) (*rsa.PrivateKey, error) {
 		return nil, fmt.Errorf("expected rest of pem block to be nil, got=%v", rest)
 	}
 
-	k, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	sk, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse private key file: %v", err)
 	}
 
-	return k, nil
+	return sk, nil
 }
 
 func readPublicKey(path string) (*rsa.PublicKey, error) {
@@ -75,10 +75,10 @@ func readPublicKey(path string) (*rsa.PublicKey, error) {
 	return k, nil
 }
 
-func ensureKeyDirectory(dir string) error {
-	if _, err := os.Stat(dir); err != nil {
+func (k *Key) ensureKeyDirectory() error {
+	if _, err := os.Stat(k.dir); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0700); err != nil {
+			if err := os.MkdirAll(k.dir, 0700); err != nil {
 				return fmt.Errorf("failed to create go-wisper key directory: %v", err)
 			}
 
@@ -90,10 +90,10 @@ func ensureKeyDirectory(dir string) error {
 	return nil
 }
 
-func ensureKeyFiles(dir string) error {
-	if _, err := os.Stat(fmt.Sprintf("%s/%s", dir, privateKeyFile)); err != nil {
+func (k *Key) ensureKeyFiles() error {
+	if _, err := os.Stat(fmt.Sprintf("%s/%s", k.dir, privateKeyFile)); err != nil {
 		if os.IsNotExist(err) {
-			if err := CreateKeyPair(dir); err != nil {
+			if err := k.createKeyPair(); err != nil {
 				return fmt.Errorf("failed to create new key pair: %v", err)
 			}
 		} else {
@@ -104,7 +104,7 @@ func ensureKeyFiles(dir string) error {
 	return nil
 }
 
-func writeKeyPemFile(file string, key *pem.Block) error {
+func (k *Key) writeKeyPemFile(file string, key *pem.Block) error {
 	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open pem file: %v", err)
