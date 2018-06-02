@@ -32,7 +32,7 @@ func (s *Server) Handle(conn net.Conn) {
 	}
 
 	if string(payload[0]) == "first connection" {
-		if len(payload) != 2 {
+		if len(payload) != 3 {
 			return
 		}
 
@@ -84,7 +84,7 @@ func (s *Server) newClient(conn net.Conn, recv [][]byte) error {
 	}
 
 	payload := append(append(message, MessageBreak...), signiture...)
-	_, err = conn.Write([]byte(payload))
+	_, err = conn.Write(payload)
 	if err != nil {
 		return fmt.Errorf("failed to send payload to client: %v", err)
 	}

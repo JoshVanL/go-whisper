@@ -23,7 +23,15 @@ func (c *Client) Handshake() error {
 }
 
 func (c *Client) FirstConnection() error {
-	_, err := c.conn.Write(append(append([]byte("first connection"), MessageBreak...), []byte(c.key.PublicKey())...))
+	send := appendParams([]byte("first connection"), c.key.PublicKey())
+
+	signiture, err := c.key.SignMessage(send)
+	if err != nil {
+		return fmt.Errorf("failed to sign initial message: %v", err)
+	}
+
+	send = appendParams(send, signiture)
+	_, err = c.conn.Write(send)
 	if err != nil {
 		return fmt.Errorf("failed to write first connection: %v", err)
 	}
@@ -39,13 +47,13 @@ func (c *Client) FirstConnection() error {
 	if len(rec) != 3 {
 		return fmt.Errorf("unexpected number of response, exp=3 got=%d", len(rec))
 	}
-	uidStr, pkStr, sigStr := rec[0], rec[1], rec[2]
+	uidB, pkB, sigB := rec[0], rec[1], rec[2]
 
-	pk, err := x509.ParsePKCS1PublicKey(pkStr)
+	pk, err := x509.ParsePKCS1PublicKey(pkB)
 	if err != nil {
 		return fmt.Errorf("failed to parse server public key: %v", err)
 	}
-	if err := c.key.VerifyPayload(pk, append(append(uidStr, MessageBreak...), pkStr...), sigStr); err != nil {
+	if err := c.key.VerifyPayload(pk, append(append(uidB, MessageBreak...), pkB...), sigB); err != nil {
 		return err
 	}
 
@@ -58,4 +66,8 @@ func (c *Client) FirstConnection() error {
 
 func decodeMessage(d []byte) [][]byte {
 	return bytes.Split(d, MessageBreak)
+}
+
+func appendParams(a, b []byte) []byte {
+	return append(append(a, MessageBreak...), b...)
 }
