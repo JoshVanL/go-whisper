@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/x509"
 	"fmt"
+	"strconv"
 )
 
 var (
@@ -49,6 +50,15 @@ func (c *Client) FirstConnection() error {
 		return fmt.Errorf("failed to parse server public key: %v", err)
 	}
 	if err := c.key.VerifyPayload(pk, append(append(uidB, MessageBreak...), pkB...), sigB); err != nil {
+		return err
+	}
+
+	c.config.UID, err = strconv.ParseUint(string(uidB), 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to convert uid string to uint64: %v", err)
+	}
+
+	if err := c.config.Write(); err != nil {
 		return err
 	}
 
