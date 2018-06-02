@@ -81,7 +81,10 @@ func (s *Server) Serve() error {
 			continue
 		}
 
-		conn := connection.New(c)
+		conn, err := connection.New(c)
+		if err != nil {
+			return err
+		}
 
 		go s.Handle(conn)
 	}

@@ -2,7 +2,11 @@ package connection
 
 import (
 	"bytes"
+	"fmt"
+	"math/big"
 	"net"
+
+	dhke "github.com/joshvanl/go-whisper/pkg/diffie_hellman"
 )
 
 var (
@@ -11,12 +15,32 @@ var (
 
 type Connection struct {
 	conn net.Conn
+	dhke *dhke.DiffieHellman
 }
 
-func New(conn net.Conn) *Connection {
+func New(conn net.Conn) (*Connection, error) {
+	d, err := dhke.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to init Diffie Hellman: %v", err)
+	}
+
+	if _, err := conn.Write(d.Intermediate().Bytes()); err != nil {
+		return nil, fmt.Errorf("failed to send Diffie Hellman intermediate: %v", err)
+	}
+
+	in := make([]byte, 2048)
+	n, err := conn.Read(in)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Diffie Hellman intermediate: %v", err)
+	}
+	in = in[:n]
+
+	d.CalcSharedSecret(new(big.Int).SetBytes(in))
+
 	return &Connection{
 		conn: conn,
-	}
+		dhke: d,
+	}, nil
 }
 
 func (c *Connection) Read() ([][]byte, error) {

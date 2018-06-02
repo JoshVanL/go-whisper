@@ -70,7 +70,10 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to server: %v", err)
 	}
-	c.conn = connection.New(conn)
+	c.conn, err = connection.New(conn)
+	if err != nil {
+		return err
+	}
 
 	if err := c.Handshake(); err != nil {
 		return fmt.Errorf("failed to handshake with the server: %v", err)
