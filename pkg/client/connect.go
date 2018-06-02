@@ -31,19 +31,15 @@ func (c *Client) FirstConnection() error {
 	}
 
 	send = appendParams(send, signiture)
-	_, err = c.conn.Write(send)
-	if err != nil {
+	if err = c.conn.Write(send); err != nil {
 		return fmt.Errorf("failed to write first connection: %v", err)
 	}
 
-	d := make([]byte, 4096)
-	n, err := c.conn.Read(d)
+	rec, err := c.conn.Read()
 	if err != nil {
 		return fmt.Errorf("failed to read from connection: %v", err)
 	}
-	d = d[:n]
 
-	rec := decodeMessage(d)
 	if len(rec) != 3 {
 		return fmt.Errorf("unexpected number of response, exp=3 got=%d", len(rec))
 	}

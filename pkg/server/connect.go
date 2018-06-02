@@ -1,31 +1,27 @@
 package server
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
 	"math"
 	"math/big"
-	"net"
+
+	"github.com/joshvanl/go-whisper/pkg/connection"
 )
 
 var (
 	MessageBreak = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
-func (s *Server) Handle(conn net.Conn) {
-	buff := make([]byte, 4096)
+func (s *Server) Handle(conn *connection.Connection) {
 
-	n, err := conn.Read(buff)
+	//fmt.Printf("buff: %s\n", buff[:n])
+
+	payload, err := conn.Read()
 	if err != nil {
 		return
 	}
-	buff = buff[:n]
-
-	fmt.Printf("buff: %s\n", buff[:n])
-
-	payload := decodeMessage(buff)
 
 	if len(payload) == 0 {
 		return
@@ -62,7 +58,7 @@ func (s *Server) newUID() (string, error) {
 	}
 }
 
-func (s *Server) newClient(conn net.Conn, recv [][]byte) error {
+func (s *Server) newClient(conn *connection.Connection, recv [][]byte) error {
 	uid, err := s.newUID()
 	if err != nil {
 		fmt.Errorf("failed to create new uid: %v", err)
@@ -84,14 +80,9 @@ func (s *Server) newClient(conn net.Conn, recv [][]byte) error {
 	}
 
 	payload := append(append(message, MessageBreak...), signiture...)
-	_, err = conn.Write(payload)
-	if err != nil {
+	if err = conn.Write(payload); err != nil {
 		return fmt.Errorf("failed to send payload to client: %v", err)
 	}
 
 	return nil
-}
-
-func decodeMessage(d []byte) [][]byte {
-	return bytes.Split(d, MessageBreak)
 }

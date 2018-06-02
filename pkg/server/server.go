@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/joshvanl/go-whisper/pkg/config"
+	"github.com/joshvanl/go-whisper/pkg/connection"
 	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
@@ -74,13 +75,15 @@ func (s *Server) Serve() error {
 
 	for {
 
-		con, err := ln.Accept()
+		c, err := ln.Accept()
 		if err != nil {
 			fmt.Printf("failed to accept connection: %v", err)
 			continue
 		}
 
-		go s.Handle(con)
+		conn := connection.New(c)
+
+		go s.Handle(conn)
 	}
 
 }

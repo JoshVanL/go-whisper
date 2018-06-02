@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/joshvanl/go-whisper/pkg/config"
+	"github.com/joshvanl/go-whisper/pkg/connection"
 	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
@@ -23,10 +24,9 @@ type Client struct {
 
 	addr string
 	dir  string
-	//uids *key.UIDs
 
 	key  *key.Key
-	conn net.Conn
+	conn *connection.Connection
 
 	config *config.Config
 }
@@ -70,7 +70,7 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to server: %v", err)
 	}
-	c.conn = conn
+	c.conn = connection.New(conn)
 
 	if err := c.Handshake(); err != nil {
 		return fmt.Errorf("failed to handshake with the server: %v", err)
