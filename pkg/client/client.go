@@ -81,10 +81,6 @@ func (c *Client) Connect() error {
 
 	c.log.Infof("Connection successful.")
 
-	//if _, err := c.conn.Write([]byte("hello")); err != nil {
-	//	return fmt.Errorf("failed to write to connection: %v", err)
-	//}
-
 	return nil
 }
 

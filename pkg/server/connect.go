@@ -16,8 +16,6 @@ var (
 
 func (s *Server) Handle(conn *connection.Connection) {
 
-	//fmt.Printf("buff: %s\n", buff[:n])
-
 	payload, err := conn.Read()
 	if err != nil {
 		return

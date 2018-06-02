@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"crypto/x509"
 	"fmt"
 )
@@ -58,10 +57,6 @@ func (c *Client) FirstConnection() error {
 	}
 
 	return nil
-}
-
-func decodeMessage(d []byte) [][]byte {
-	return bytes.Split(d, MessageBreak)
 }
 
 func appendParams(a, b []byte) []byte {
