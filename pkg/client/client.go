@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/joshvanl/go-whisper/pkg/config"
 	"github.com/joshvanl/go-whisper/pkg/connection"
+	"github.com/joshvanl/go-whisper/pkg/gui"
 	"github.com/joshvanl/go-whisper/pkg/key"
 )
 
@@ -20,8 +19,6 @@ const (
 )
 
 type Client struct {
-	log *logrus.Entry
-
 	addr string
 	dir  string
 
@@ -29,23 +26,29 @@ type Client struct {
 	conn *connection.Connection
 
 	config *config.Config
+	g      *gui.GUI
 }
 
-func New(addr, dir string, log *logrus.Entry) (*Client, error) {
+func New(addr, dir string) (*Client, error) {
 
-	log.Infof("Retrieving local key pair...")
+	g, err := gui.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initiate gui: %v", err)
+	}
+
+	g.Infof("Retrieving local key pair...")
 	k, err := key.New(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read client key: %v", err)
 	}
 
 	client := &Client{
-		log: log,
 		dir: dir,
 		key: k,
+		g:   g,
 	}
 
-	log.Infof("Retrieving local client config...")
+	g.Infof("Retrieving local client config...")
 	config, err := config.ReadConfig(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %v", err)
@@ -57,12 +60,15 @@ func New(addr, dir string, log *logrus.Entry) (*Client, error) {
 		client.addr = addr
 	}
 
-	log.Infof("Connecting to server...")
-	if err := client.Connect(); err != nil {
-		return nil, err
-	}
+	g.Infof("Connecting to server...")
 
 	return client, nil
+}
+
+func (c *Client) Close() {
+	if c != nil && c.g != nil {
+		c.g.Close()
+	}
 }
 
 func (c *Client) Connect() error {
@@ -70,6 +76,7 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to server: %v", err)
 	}
+
 	c.conn, err = connection.New(conn)
 	if err != nil {
 		return err
@@ -79,7 +86,7 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("failed to handshake with the server: %v", err)
 	}
 
-	c.log.Infof("Connection successful.")
+	c.g.Infof("Connection successful.")
 
 	return nil
 }

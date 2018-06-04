@@ -106,6 +106,7 @@ func (c *Connection) encypt(text []byte) ([]byte, error) {
 
 	cfb := cipher.NewCFBEncrypter(block, iv)
 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(msg))
+
 	return ciphertext, nil
 }
 

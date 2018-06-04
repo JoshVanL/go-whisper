@@ -44,17 +44,19 @@ var RootCmd = &cobra.Command{
 			}
 		}
 
-		_, err = client.New(addr, dir, log)
+		c, err := client.New(addr, dir)
 		if err != nil {
+			c.Close()
 			log.Fatalf("error creating client: %v", err)
+		}
+
+		if err := c.Connect(); err != nil {
+			c.Close()
+			log.Fatalf("error running client: %v", err)
 		}
 
 		stopCh := make(chan struct{})
 		<-stopCh
-
-		//if err := c.Connect(); err != nil {
-		//	log.Fatalf("error running client: %v", err)
-		//}
 	},
 }
 
