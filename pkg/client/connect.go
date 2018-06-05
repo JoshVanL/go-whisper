@@ -2,6 +2,7 @@ package client
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -19,6 +20,13 @@ func (c *Client) Handshake() error {
 		return c.FirstConnection()
 	}
 
+	pk, err := c.key.ReadUidFile("0")
+	if err != nil {
+		return fmt.Errorf("failed to read server public key from file: %v", err)
+	}
+
+	c.serverpk = pk
+
 	return nil
 }
 
@@ -35,7 +43,7 @@ func (c *Client) FirstConnection() error {
 		return fmt.Errorf("failed to write first connection: %v", err)
 	}
 
-	rec, err := c.conn.Read()
+	rec, payload, err := c.conn.Read()
 	if err != nil {
 		return fmt.Errorf("failed to read from connection: %v", err)
 	}
@@ -49,7 +57,7 @@ func (c *Client) FirstConnection() error {
 	if err != nil {
 		return fmt.Errorf("failed to parse server public key: %v", err)
 	}
-	if err := c.key.VerifyPayload(pk, appendParams(uidB, pkB), sigB); err != nil {
+	if err := c.key.VerifyPayload(pk, payload, sigB); err != nil {
 		return err
 	}
 
@@ -85,16 +93,18 @@ func (c *Client) QueryUID(uid string) (string, error) {
 		return "", fmt.Errorf("failed to send uid query: %v", err)
 	}
 
-	res, err := c.conn.Read()
+	res, payload, err := c.conn.Read()
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Printf("%s\n", res)
+	if err := c.key.VerifyPayload(c.serverpk, payload, res[len(res)-1]); err != nil {
+		return "", err
+	}
 
-	//if err := c.key.VerifyPayload(c.serverpk, res[0], res[1]); err != nil {
-	//	return "", err
-	//}
+	if len(res) < 3 {
+		return "", errors.New(string(res[0]))
+	}
 
 	return string(res[0]), nil
 }

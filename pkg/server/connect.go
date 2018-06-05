@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
@@ -19,7 +20,7 @@ var (
 
 func (s *Server) Handle(conn *connection.Connection) {
 
-	payload, err := conn.Read()
+	payload, _, err := conn.Read()
 	if err != nil {
 		return
 	}
@@ -60,6 +61,8 @@ func (s *Server) uidQuery(conn *connection.Connection, recv [][]byte) error {
 		p = appendParams(p, r)
 	}
 
+	recv[2] = bytes.TrimLeft(recv[2], "0")
+
 	uids, err := s.key.UIDsFromFile()
 	if err != nil {
 		return fmt.Errorf("failed to get all uids on server: %v", err)
@@ -79,17 +82,17 @@ func (s *Server) uidQuery(conn *connection.Connection, recv [][]byte) error {
 	}
 
 	var message []byte
-	if b, ok := uids[string(recv[1])]; !ok || !b {
-		message = []byte("uid not exist")
+	if b, ok := uids[string(recv[2])]; !ok || !b {
+		message = []byte("uid does not exist")
 
 	} else {
 
-		pk, err := s.key.ReadUidFile(string(recv[1]))
+		pk, err := s.key.ReadUidFile(string(recv[2]))
 		if err != nil {
 			return fmt.Errorf("failed to get uid pk from file: %v", err)
 		}
 
-		message = x509.MarshalPKCS1PublicKey(pk)
+		message = appendParams([]byte("uid found"), x509.MarshalPKCS1PublicKey(pk))
 	}
 
 	signiture, err := s.key.SignMessage(message)

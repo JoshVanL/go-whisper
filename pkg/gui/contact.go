@@ -89,16 +89,15 @@ func (c *Contact) listenToSteam() {
 				}
 			} else if key == termbox.KeyTab {
 
-				c.gui.drawText(c.clearBoxString(), c.startX, c.startY+5, FG, BG)
+				c.gui.drawText(c.clearBoxString(), c.startX-1, c.startY+4, FG, BG)
 
 				res, err := c.enterUid()
 				if err != nil {
-					c.gui.drawText(err.Error(), c.startX, c.cursorY+5, FG, termbox.ColorRed)
+					c.gui.drawText(err.Error(), c.startX-1, c.cursorY+4, FG, termbox.ColorRed)
 					break
 				}
 
-				c.gui.drawText(res, c.startX, c.cursorY+4, FG, termbox.ColorCyan)
-
+				c.gui.drawText(res, c.startX-1, c.cursorY+4, FG, termbox.ColorCyan)
 			}
 
 			break

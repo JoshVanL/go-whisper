@@ -57,21 +57,27 @@ func New(conn net.Conn) (*Connection, error) {
 	}, nil
 }
 
-func (c *Connection) Read() ([][]byte, error) {
+func (c *Connection) Read() (decoded [][]byte, payload []byte, err error) {
 	buff := make([]byte, 4096)
 
 	n, err := c.conn.Read(buff)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	buff = buff[:n]
 
 	buff, err = c.decrypt(buff)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt cipher: %v", err)
+		return nil, nil, fmt.Errorf("failed to decrypt cipher: %v", err)
 	}
 
-	return c.decodeMessage(buff), nil
+	decoded = c.decodeMessage(buff)
+	payload = decoded[0]
+	for _, b := range decoded[1 : len(decoded)-1] {
+		payload = appendParams(payload, b)
+	}
+
+	return decoded, payload, nil
 }
 
 func (c *Connection) Write(b []byte) error {
@@ -149,4 +155,8 @@ func (c *Connection) unpad(src []byte) ([]byte, error) {
 	}
 
 	return src[:(length - unpadding)], nil
+}
+
+func appendParams(a, b []byte) []byte {
+	return append(append(a, MessageBreak...), b...)
 }
