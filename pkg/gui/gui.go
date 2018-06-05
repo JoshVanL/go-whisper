@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
@@ -24,15 +25,23 @@ var (
 )
 
 type GUI struct {
-	x    int
-	line int
+	x        int
+	line     int
+	initMenu bool
+	stream   chan rune
 
-	menu *Menu
+	stopPage  chan struct{}
+	enterMode bool
+	mu        *sync.Mutex
+
+	menu    *Menu
+	contact *Contact
 }
 
 type Menu struct {
 	options  []string
 	selected int
+	page     int
 }
 
 func New() (*GUI, error) {
@@ -41,13 +50,17 @@ func New() (*GUI, error) {
 	}
 
 	g := &GUI{
-		x:    0,
-		line: 0,
+		x:        0,
+		line:     0,
+		stream:   make(chan rune),
+		mu:       new(sync.Mutex),
+		stopPage: make(chan struct{}),
 	}
 
 	g.menu = &Menu{
 		options:  MenuOptions,
 		selected: 0,
+		page:     0,
 	}
 
 	g.init()
@@ -66,13 +79,20 @@ func (g *GUI) Close() {
 }
 
 func (g *GUI) DrawMenu() {
+	if !g.initMenu {
+		termbox.Clear(FG, BG)
+		g.initMenu = true
+	}
+
 	g.line = 0
-	termbox.Clear(FG, BG)
 	termbox.Flush()
-	g.drawText("go-whisper", 0, 1, FG, BG)
+	g.drawText("go-whisper", 0, 1, termbox.ColorCyan, termbox.ColorBlack)
 	w, h := termbox.Size()
 	g.fill(SepX, 0, 1, h, termbox.Cell{Ch: '|'})
 	g.fill(0, SepY, w, 1, termbox.Cell{Ch: '-'})
+
+	pageStr := g.menu.options[g.menu.page]
+	g.drawText(fmt.Sprintf("%s", pageStr), w-stringLength(pageStr)-1, 2, FG, termbox.ColorMagenta)
 
 	x := SepX + 1
 	for i, o := range g.menu.options {
@@ -83,12 +103,6 @@ func (g *GUI) DrawMenu() {
 
 		x, _ = g.drawText(o, x+2, 1, FG, color)
 	}
-
-	//for i := uint16(0); i < 16; i++ {
-	//	x, _ = g.drawText(fmt.Sprintf("%v", i), x+2, 1, FG, termbox.Attribute(i))
-	//}
-
-	//x, _ = g.drawText(fmt.Sprintf("%v %v", termbox.ColorBlue, termbox.ColorGreen), x+2, 1, FG, termbox.ColorBlue)
 
 	termbox.Flush()
 }
@@ -136,36 +150,93 @@ func (g *GUI) fill(x, y, w, h int, cell termbox.Cell) {
 }
 
 func (g *GUI) catchKeyboard() {
-	go func() {
-		for {
-			switch ev := termbox.PollEvent(); ev.Type {
-			case termbox.EventKey:
+	keybord := func() {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
 
-				switch ev.Key {
-				case termbox.KeyCtrlC:
-					termbox.Close()
-					fmt.Printf("closing...\n")
-					os.Exit(0)
-					break
+			switch ev.Key {
+			case termbox.KeyCtrlC:
+				termbox.Close()
+				fmt.Printf("closing...\n")
+				os.Exit(0)
+				break
 
-				case termbox.KeyArrowLeft:
-					g.menu.selected = g.menu.selected - 1
-					if g.menu.selected < 0 {
-						g.menu.selected = len(g.menu.options) - 1
-					}
+			case termbox.KeyArrowLeft:
+				g.menu.selected = g.menu.selected - 1
+				if g.menu.selected < 0 {
+					g.menu.selected = len(g.menu.options) - 1
+				}
 
+				g.DrawMenu()
+				break
+
+			case termbox.KeyArrowRight:
+				g.menu.selected = (g.menu.selected + 1) % len(g.menu.options)
+
+				g.DrawMenu()
+				break
+
+			case termbox.KeyEnter:
+				g.mu.Lock()
+				close(g.stopPage)
+				close(g.stream)
+				g.stream = make(chan rune)
+				g.stopPage = make(chan struct{})
+				g.mu.Unlock()
+
+				switch g.menu.selected {
+				case 0:
+					g.enterMode = false
+					g.initMenu = false
+					g.menu.page = 0
 					g.DrawMenu()
 					break
 
-				case termbox.KeyArrowRight:
-					g.menu.selected = (g.menu.selected + 1) % len(g.menu.options)
-
+				case 1:
+					g.enterMode = true
+					g.menu.page = 1
+					g.contact = newContact(g, g.stream, g.stopPage)
+					g.contact.printNewContact()
 					g.DrawMenu()
 					break
+
+				case 2:
+					g.enterMode = false
+					g.initMenu = false
+					g.menu.page = 2
+					g.DrawMenu()
+					break
+
+				}
+
+				break
+
+			default:
+				if ev.Ch != 0 && g.enterMode {
+					g.mu.Lock()
+					go func() {
+						g.stream <- ev.Ch
+					}()
+					g.mu.Unlock()
 				}
 
 				break
 			}
+
+			break
+		}
+	}
+
+	go func() {
+		for {
+			keybord()
 		}
 	}()
+}
+
+func stringLength(msg string) (x int) {
+	for _, c := range msg {
+		x += runewidth.RuneWidth(c)
+	}
+	return x
 }
