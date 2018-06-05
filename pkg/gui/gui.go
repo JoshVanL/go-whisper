@@ -7,6 +7,8 @@ import (
 
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
+
+	"github.com/joshvanl/go-whisper/pkg/interfaces"
 )
 
 const (
@@ -39,6 +41,7 @@ type GUI struct {
 
 	menu    *Menu
 	contact *Contact
+	client  interfaces.Client
 }
 
 type Menu struct {
@@ -95,7 +98,13 @@ func (g *GUI) DrawMenu() {
 	w, h := termbox.Size()
 	g.fill(SepX, 0, 1, h, termbox.Cell{Ch: '|'})
 	g.fill(0, SepY, w, 1, termbox.Cell{Ch: '-'})
-	pageStr := fmt.Sprintf("%s uid[%v]", g.menu.options[g.menu.page], g.uid)
+
+	uid := fmt.Sprintf("%v", g.uid)
+	for len(uid) != 11 {
+		uid = fmt.Sprintf("0%s", uid)
+	}
+
+	pageStr := fmt.Sprintf("%s uid[%s]", g.menu.options[g.menu.page], uid)
 	g.drawText(pageStr, w-stringLength(pageStr)-1, 2, FG, termbox.ColorMagenta)
 
 	x := SepX + 1
@@ -256,4 +265,8 @@ func stringLength(msg string) (x int) {
 
 func (g *GUI) SetUid(uid uint64) {
 	g.uid = uid
+}
+
+func (g *GUI) SetClient(client interfaces.Client) {
+	g.client = client
 }

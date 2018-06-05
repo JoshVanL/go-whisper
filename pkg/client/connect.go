@@ -49,9 +49,11 @@ func (c *Client) FirstConnection() error {
 	if err != nil {
 		return fmt.Errorf("failed to parse server public key: %v", err)
 	}
-	if err := c.key.VerifyPayload(pk, append(append(uidB, MessageBreak...), pkB...), sigB); err != nil {
+	if err := c.key.VerifyPayload(pk, appendParams(uidB, pkB), sigB); err != nil {
 		return err
 	}
+
+	c.serverpk = pk
 
 	c.config.UID, err = strconv.ParseUint(string(uidB), 10, 64)
 	if err != nil {
@@ -67,6 +69,34 @@ func (c *Client) FirstConnection() error {
 	}
 
 	return nil
+}
+
+func (c *Client) QueryUID(uid string) (string, error) {
+
+	message := appendParams([]byte("uid query"), []byte(fmt.Sprintf("%v", c.config.UID)))
+	message = appendParams(message, []byte(uid))
+	signiture, err := c.key.SignMessage(message)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign query message: %v", err)
+	}
+	message = appendParams(message, signiture)
+
+	if err := c.conn.Write(message); err != nil {
+		return "", fmt.Errorf("failed to send uid query: %v", err)
+	}
+
+	res, err := c.conn.Read()
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("%s\n", res)
+
+	//if err := c.key.VerifyPayload(c.serverpk, res[0], res[1]); err != nil {
+	//	return "", err
+	//}
+
+	return string(res[0]), nil
 }
 
 func appendParams(a, b []byte) []byte {

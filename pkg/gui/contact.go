@@ -2,7 +2,6 @@ package gui
 
 import (
 	"errors"
-	//"fmt"
 	"strconv"
 
 	"github.com/nsf/termbox-go"
@@ -135,5 +134,10 @@ func (c *Contact) enterUid() (string, error) {
 		return "", errors.New("UIDs must be 11 digits.")
 	}
 
-	return "", nil
+	res, err := c.gui.client.QueryUID(c.text)
+	if err != nil {
+		return "", err
+	}
+
+	return res, nil
 }

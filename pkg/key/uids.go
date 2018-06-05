@@ -70,7 +70,7 @@ func (k *Key) UIDsFromFile() (map[string]bool, error) {
 
 	uids := make(map[string]bool)
 	for _, f := range fs {
-		if _, err := strconv.Atoi(f.Name()); err != nil {
+		if _, err := strconv.Atoi(f.Name()); err == nil {
 			uids[f.Name()] = true
 		}
 	}

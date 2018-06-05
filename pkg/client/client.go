@@ -22,8 +22,9 @@ type Client struct {
 	addr string
 	dir  string
 
-	key  *key.Key
-	conn *connection.Connection
+	key      *key.Key
+	conn     *connection.Connection
+	serverpk *rsa.PublicKey
 
 	config *config.Config
 	g      *gui.GUI
@@ -47,6 +48,8 @@ func New(addr, dir string) (*Client, error) {
 		key: k,
 		g:   g,
 	}
+
+	g.SetClient(client)
 
 	g.Infof("Retrieving local client config...")
 	config, err := config.ReadConfig(dir)
