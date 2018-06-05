@@ -3,7 +3,6 @@ package gui
 import (
 	"fmt"
 	"os"
-	"os/signal"
 
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
@@ -14,6 +13,14 @@ const (
 	BG   = termbox.ColorDefault
 	SepX = 11
 	SepY = 3
+)
+
+var (
+	MenuOptions = []string{
+		"New Message",
+		"New Contact",
+		"Placeholder",
+	}
 )
 
 type GUI struct {
@@ -39,10 +46,7 @@ func New() (*GUI, error) {
 	}
 
 	g.menu = &Menu{
-		options: []string{
-			"New Message",
-			"New Contact",
-		},
+		options:  MenuOptions,
 		selected: 0,
 	}
 
@@ -54,7 +58,7 @@ func New() (*GUI, error) {
 func (g *GUI) init() {
 	termbox.Clear(FG, BG)
 	termbox.Flush()
-	g.catch()
+	g.catchKeyboard()
 }
 
 func (g *GUI) Close() {
@@ -131,20 +135,36 @@ func (g *GUI) fill(x, y, w, h int, cell termbox.Cell) {
 	}
 }
 
-func (g *GUI) catch() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-
+func (g *GUI) catchKeyboard() {
 	go func() {
 		for {
 			switch ev := termbox.PollEvent(); ev.Type {
 			case termbox.EventKey:
-				if ev.Key == termbox.KeyCtrlC {
+
+				switch ev.Key {
+				case termbox.KeyCtrlC:
 					termbox.Close()
 					fmt.Printf("closing...\n")
 					os.Exit(0)
 					break
+
+				case termbox.KeyArrowLeft:
+					g.menu.selected = g.menu.selected - 1
+					if g.menu.selected < 0 {
+						g.menu.selected = len(g.menu.options) - 1
+					}
+
+					g.DrawMenu()
+					break
+
+				case termbox.KeyArrowRight:
+					g.menu.selected = (g.menu.selected + 1) % len(g.menu.options)
+
+					g.DrawMenu()
+					break
 				}
+
+				break
 			}
 		}
 	}()
