@@ -106,6 +106,15 @@ func (c *Client) QueryUID(uid string) (string, error) {
 		return "", errors.New(string(res[0]))
 	}
 
+	pk, err := x509.ParsePKCS1PublicKey(res[2])
+	if err != nil {
+		return "", fmt.Errorf("failed to parse uid public key: %v", err)
+	}
+
+	if err := c.key.NewUidFile(uid, pk); err != nil {
+		return "", fmt.Errorf("failed to save new uid public key: %v", err)
+	}
+
 	return string(res[0]), nil
 }
 

@@ -65,7 +65,7 @@ func (c *Contact) listenToSteam() {
 		select {
 		case ch := <-c.stream:
 
-			c.gui.drawText(c.clearBoxString(), c.startX, c.cursorY, FG, BG)
+			c.gui.drawText(c.clearBoxString(30), c.startX, c.cursorY, FG, BG)
 
 			if len(c.text) < 27 {
 				c.text += string(ch)
@@ -83,13 +83,13 @@ func (c *Contact) listenToSteam() {
 				if len(c.text) > 0 {
 					c.text = c.text[:len(c.text)-1]
 					c.cursorX--
-					c.gui.drawText(c.clearBoxString(), c.startX, c.cursorY, FG, BG)
+					c.gui.drawText(c.clearBoxString(30), c.startX, c.cursorY, FG, BG)
 					termbox.SetCursor(c.cursorX, c.cursorY)
 					c.gui.drawText(c.text, c.startX, c.cursorY, FG, BG)
 				}
 			} else if key == termbox.KeyTab {
 
-				c.gui.drawText(c.clearBoxString(), c.startX-1, c.startY+4, FG, BG)
+				c.gui.drawText(c.clearBoxString(100), c.startX-1, c.startY+4, FG, BG)
 
 				res, err := c.enterUid()
 				if err != nil {
@@ -119,9 +119,9 @@ func (c *Contact) listenToSteam() {
 	}()
 }
 
-func (c *Contact) clearBoxString() string {
+func (c *Contact) clearBoxString(clear int) string {
 	str := ""
-	for i := 0; i < 29; i++ {
+	for i := 0; i < clear-1; i++ {
 		str += " "
 	}
 	return str
