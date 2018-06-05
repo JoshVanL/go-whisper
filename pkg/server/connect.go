@@ -4,10 +4,13 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
-	"math"
 	"math/big"
 
 	"github.com/joshvanl/go-whisper/pkg/connection"
+)
+
+const (
+	MaxNumber = 99999999999
 )
 
 var (
@@ -25,7 +28,8 @@ func (s *Server) Handle(conn *connection.Connection) {
 		return
 	}
 
-	if string(payload[0]) == "first connection" {
+	switch string(payload[0]) {
+	case "first connection":
 		if len(payload) != 3 {
 			return
 		}
@@ -37,11 +41,12 @@ func (s *Server) Handle(conn *connection.Connection) {
 
 		return
 	}
+
 }
 
 func (s *Server) newUID() (string, error) {
 	for {
-		n, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+		n, err := rand.Int(rand.Reader, big.NewInt(MaxNumber))
 		if err != nil {
 			if err != nil {
 				return "", fmt.Errorf("failed to generate random number; %v", err)

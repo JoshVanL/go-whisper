@@ -1,6 +1,10 @@
 package gui
 
 import (
+	"errors"
+	//"fmt"
+	"strconv"
+
 	"github.com/nsf/termbox-go"
 )
 
@@ -9,7 +13,7 @@ type Contact struct {
 	gui  *GUI
 
 	cursorX, cursorY int
-	startX           int
+	startX, startY   int
 
 	stream chan rune
 	key    chan termbox.Key
@@ -49,9 +53,10 @@ func (c *Contact) printNewContact() {
 	c.cursorX = srtX + 1
 	c.cursorY = srtY + 1
 	c.startX = srtX + 1
+	c.startY = srtY + 1
 
 	termbox.SetCursor(c.cursorX, c.cursorY)
-	c.gui.drawText("Press enter to confirm choice.", srtX, h/2+2, FG, BG)
+	c.gui.drawText("Press TAB to confirm choice.", srtX, h/2+2, FG, BG)
 
 	termbox.Flush()
 }
@@ -79,12 +84,23 @@ func (c *Contact) listenToSteam() {
 				if len(c.text) > 0 {
 					c.text = c.text[:len(c.text)-1]
 					c.cursorX--
+					c.gui.drawText(c.clearBoxString(), c.startX, c.cursorY, FG, BG)
+					termbox.SetCursor(c.cursorX, c.cursorY)
+					c.gui.drawText(c.text, c.startX, c.cursorY, FG, BG)
 				}
-			}
-			c.gui.drawText(c.clearBoxString(), c.startX, c.cursorY, FG, BG)
+			} else if key == termbox.KeyTab {
 
-			termbox.SetCursor(c.cursorX, c.cursorY)
-			c.gui.drawText(c.text, c.startX, c.cursorY, FG, BG)
+				c.gui.drawText(c.clearBoxString(), c.startX, c.startY+5, FG, BG)
+
+				res, err := c.enterUid()
+				if err != nil {
+					c.gui.drawText(err.Error(), c.startX, c.cursorY+5, FG, termbox.ColorRed)
+					break
+				}
+
+				c.gui.drawText(res, c.startX, c.cursorY+4, FG, termbox.ColorCyan)
+
+			}
 
 			break
 
@@ -111,4 +127,13 @@ func (c *Contact) clearBoxString() string {
 		str += " "
 	}
 	return str
+}
+
+func (c *Contact) enterUid() (string, error) {
+
+	if _, err := strconv.Atoi(c.text); err != nil || len(c.text) != 11 {
+		return "", errors.New("UIDs must be 11 digits.")
+	}
+
+	return "", nil
 }

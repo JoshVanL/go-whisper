@@ -25,6 +25,7 @@ var (
 )
 
 type GUI struct {
+	uid      uint64
 	x        int
 	line     int
 	initMenu bool
@@ -52,6 +53,7 @@ func New() (*GUI, error) {
 	}
 
 	g := &GUI{
+		uid:      0,
 		x:        0,
 		line:     0,
 		stream:   make(chan rune),
@@ -93,9 +95,8 @@ func (g *GUI) DrawMenu() {
 	w, h := termbox.Size()
 	g.fill(SepX, 0, 1, h, termbox.Cell{Ch: '|'})
 	g.fill(0, SepY, w, 1, termbox.Cell{Ch: '-'})
-
-	pageStr := g.menu.options[g.menu.page]
-	g.drawText(fmt.Sprintf("%s", pageStr), w-stringLength(pageStr)-1, 2, FG, termbox.ColorMagenta)
+	pageStr := fmt.Sprintf("%s uid[%v]", g.menu.options[g.menu.page], g.uid)
+	g.drawText(pageStr, w-stringLength(pageStr)-1, 2, FG, termbox.ColorMagenta)
 
 	x := SepX + 1
 	for i, o := range g.menu.options {
@@ -181,6 +182,7 @@ func (g *GUI) catchKeyboard() {
 
 			case termbox.KeyEnter:
 				g.mu.Lock()
+				termbox.SetCursor(termbox.Size())
 				close(g.stopPage)
 				close(g.stream)
 				close(g.keys)
@@ -200,9 +202,9 @@ func (g *GUI) catchKeyboard() {
 				case 1:
 					g.enterMode = true
 					g.menu.page = 1
+					g.DrawMenu()
 					g.contact = newContact(g, g.stream, g.keys, g.stopPage)
 					g.contact.printNewContact()
-					g.DrawMenu()
 					break
 
 				case 2:
@@ -250,4 +252,8 @@ func stringLength(msg string) (x int) {
 		x += runewidth.RuneWidth(c)
 	}
 	return x
+}
+
+func (g *GUI) SetUid(uid uint64) {
+	g.uid = uid
 }

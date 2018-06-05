@@ -88,6 +88,8 @@ func (c *Client) Connect() error {
 
 	c.g.Infof("Connection successful.")
 
+	c.g.SetUid(c.config.UID)
+
 	c.g.DrawMenu()
 
 	return nil
