@@ -28,7 +28,9 @@ type GUI struct {
 	x        int
 	line     int
 	initMenu bool
-	stream   chan rune
+
+	stream chan rune
+	keys   chan termbox.Key
 
 	stopPage  chan struct{}
 	enterMode bool
@@ -53,6 +55,7 @@ func New() (*GUI, error) {
 		x:        0,
 		line:     0,
 		stream:   make(chan rune),
+		keys:     make(chan termbox.Key),
 		mu:       new(sync.Mutex),
 		stopPage: make(chan struct{}),
 	}
@@ -180,7 +183,9 @@ func (g *GUI) catchKeyboard() {
 				g.mu.Lock()
 				close(g.stopPage)
 				close(g.stream)
+				close(g.keys)
 				g.stream = make(chan rune)
+				g.keys = make(chan termbox.Key)
 				g.stopPage = make(chan struct{})
 				g.mu.Unlock()
 
@@ -195,7 +200,7 @@ func (g *GUI) catchKeyboard() {
 				case 1:
 					g.enterMode = true
 					g.menu.page = 1
-					g.contact = newContact(g, g.stream, g.stopPage)
+					g.contact = newContact(g, g.stream, g.keys, g.stopPage)
 					g.contact.printNewContact()
 					g.DrawMenu()
 					break
@@ -212,11 +217,17 @@ func (g *GUI) catchKeyboard() {
 				break
 
 			default:
-				if ev.Ch != 0 && g.enterMode {
+				if g.enterMode {
 					g.mu.Lock()
-					go func() {
-						g.stream <- ev.Ch
-					}()
+					if ev.Ch != 0 {
+						go func() {
+							g.stream <- ev.Ch
+						}()
+					} else if ev.Key != 0 {
+						go func() {
+							g.keys <- ev.Key
+						}()
+					}
 					g.mu.Unlock()
 				}
 

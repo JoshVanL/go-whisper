@@ -5,16 +5,21 @@ import (
 )
 
 type Contact struct {
-	text []byte
+	text string
 	gui  *GUI
 
+	cursorX, cursorY int
+	startX           int
+
 	stream chan rune
+	key    chan termbox.Key
 	stopCh chan struct{}
 }
 
-func newContact(gui *GUI, stream chan rune, stopCh chan struct{}) *Contact {
+func newContact(gui *GUI, stream chan rune, key chan termbox.Key, stopCh chan struct{}) *Contact {
 	contact := &Contact{
 		stream: stream,
+		key:    key,
 		stopCh: stopCh,
 		gui:    gui,
 	}
@@ -41,7 +46,11 @@ func (c *Contact) printNewContact() {
 	termbox.SetCell(srtX-1, srtY+1, '│', FG, BG)
 	termbox.SetCell(endX, endY-1, '│', FG, BG)
 
-	termbox.SetCursor(srtX+1, srtY+1)
+	c.cursorX = srtX + 1
+	c.cursorY = srtY + 1
+	c.startX = srtX + 1
+
+	termbox.SetCursor(c.cursorX, c.cursorY)
 	c.gui.drawText("Press enter to confirm choice.", srtX, h/2+2, FG, BG)
 
 	termbox.Flush()
@@ -51,8 +60,32 @@ func (c *Contact) listenToSteam() {
 	listen := func() bool {
 		select {
 		case ch := <-c.stream:
-			c.gui.Print(string(ch))
-			// insert text
+
+			c.gui.drawText(c.clearBoxString(), c.startX, c.cursorY, FG, BG)
+
+			if len(c.text) < 27 {
+				c.text += string(ch)
+				c.cursorX++
+			}
+
+			c.gui.drawText(c.text, c.startX, c.cursorY, FG, BG)
+			termbox.SetCursor(c.cursorX, c.cursorY)
+			c.gui.drawText(c.text, c.startX, c.cursorY, FG, BG)
+
+			break
+
+		case key := <-c.key:
+			if key == termbox.KeyBackspace || key == termbox.KeyBackspace2 {
+				if len(c.text) > 0 {
+					c.text = c.text[:len(c.text)-1]
+					c.cursorX--
+				}
+			}
+			c.gui.drawText(c.clearBoxString(), c.startX, c.cursorY, FG, BG)
+
+			termbox.SetCursor(c.cursorX, c.cursorY)
+			c.gui.drawText(c.text, c.startX, c.cursorY, FG, BG)
+
 			break
 
 		case <-c.stopCh:
@@ -70,4 +103,12 @@ func (c *Contact) listenToSteam() {
 			}
 		}
 	}()
+}
+
+func (c *Contact) clearBoxString() string {
+	str := ""
+	for i := 0; i < 29; i++ {
+		str += " "
+	}
+	return str
 }
