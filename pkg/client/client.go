@@ -95,3 +95,20 @@ func (c *Client) Connect() error {
 
 	return nil
 }
+
+func (c *Client) Uids() []string {
+	mapUids, err := c.key.UIDsFromFile()
+	if err != nil {
+		// do something here!
+		return nil
+	}
+
+	var uids []string
+	for key, b := range mapUids {
+		if b && key != "0" {
+			uids = append(uids, key)
+		}
+	}
+
+	return uids
+}

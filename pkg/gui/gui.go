@@ -14,7 +14,7 @@ import (
 const (
 	FG   = termbox.ColorDefault
 	BG   = termbox.ColorDefault
-	SepX = 11
+	SepX = 13
 	SepY = 3
 )
 
@@ -22,7 +22,7 @@ var (
 	MenuOptions = []string{
 		"New Message",
 		"New Contact",
-		"Placeholder",
+		"Chats",
 	}
 )
 
@@ -87,17 +87,25 @@ func (g *GUI) Close() {
 }
 
 func (g *GUI) DrawMenu() {
-	if !g.initMenu {
-		termbox.Clear(FG, BG)
-		g.initMenu = true
-	}
+	//if !g.initMenu {
+	//termbox.Clear(FG, BG)
+	g.initMenu = true
+	//}
 
 	g.line = 0
-	termbox.Flush()
-	g.drawText("go-whisper", 0, 1, termbox.ColorCyan, termbox.ColorBlack)
+	//termbox.Flush()
 	w, h := termbox.Size()
+	g.fill(0, 0, w, h, termbox.Cell{Ch: ' '})
+	g.drawText("go-whisper", 1, 1, termbox.ColorCyan, termbox.ColorBlack)
+	//w, h := termbox.Size()
 	g.fill(SepX, 0, 1, h, termbox.Cell{Ch: '|'})
 	g.fill(0, SepY, w, 1, termbox.Cell{Ch: '-'})
+
+	yy := 5
+	for _, uid := range g.client.Uids() {
+		g.drawText(fmt.Sprintf("%s", uid), 1, yy, termbox.ColorCyan, termbox.ColorBlack)
+		yy++
+	}
 
 	uid := fmt.Sprintf("%v", g.uid)
 	for len(uid) != 11 {

@@ -106,7 +106,7 @@ func (c *Client) QueryUID(uid string) (string, error) {
 		return "", errors.New(string(res[0]))
 	}
 
-	pk, err := x509.ParsePKCS1PublicKey(res[2])
+	pk, err := x509.ParsePKCS1PublicKey(res[1])
 	if err != nil {
 		return "", fmt.Errorf("failed to parse uid public key: %v", err)
 	}

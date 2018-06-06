@@ -2,6 +2,7 @@ client
 server
 bin/
 config
+configc
 !cmd/server
 !cmd/client
 !pkg/server
