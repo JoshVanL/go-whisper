@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"net"
+	"sort"
 
 	"github.com/joshvanl/go-whisper/pkg/config"
 	"github.com/joshvanl/go-whisper/pkg/connection"
@@ -109,6 +110,8 @@ func (c *Client) Uids() []string {
 			uids = append(uids, key)
 		}
 	}
+
+	sort.Strings(uids)
 
 	return uids
 }

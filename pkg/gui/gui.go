@@ -20,9 +20,9 @@ const (
 
 var (
 	MenuOptions = []string{
-		"New Message",
-		"New Contact",
 		"Chats",
+		"New Contact",
+		"New Message",
 	}
 )
 
@@ -41,6 +41,7 @@ type GUI struct {
 
 	menu    *Menu
 	contact *Contact
+	newMsg  *NewMsg
 	client  interfaces.Client
 }
 
@@ -225,10 +226,12 @@ func (g *GUI) catchKeyboard() {
 					break
 
 				case 2:
-					g.enterMode = false
+					g.enterMode = true
 					g.initMenu = false
 					g.menu.page = 2
 					g.DrawMenu()
+					g.newMsg = newMessage(g, g.stream, g.keys, g.stopPage)
+					g.newMsg.printNewMessage()
 					break
 
 				}
